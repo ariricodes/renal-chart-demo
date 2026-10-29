@@ -459,6 +459,26 @@ tr.off td{opacity:.55}
 @media (max-width:480px){.stg .bd .lf{display:none}}
 .acts{display:flex;flex-wrap:wrap;gap:6px;min-width:170px}
 
+.stp{display:inline-block;font:600 11px/1.4 var(--font-body);padding:1px 8px;border-radius:999px;margin-left:6px;white-space:nowrap;vertical-align:middle}
+.stp.opd{background:var(--accent-soft);color:var(--accent)}
+.stp.ipd{background:var(--warn-bg);color:var(--warn)}
+.sched{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.sday{border:1px solid var(--line-soft);border-radius:14px;background:var(--sheet);padding:10px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.sday.now{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.sday.none{background:var(--sheet-2)}
+.sday .dh{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.sday .dh b{color:var(--ink);font-size:13px}
+.sday .dh .n{margin-left:auto;font:600 12px var(--font-mono);background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:0 8px}
+.sday.none .dh .n{background:transparent;color:var(--ink-3)}
+.sday .tdy{font:600 10px var(--font-body);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.sday .si{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:var(--ink);padding:6px 8px;border-radius:10px;background:var(--sheet-2);font-size:12px;line-height:1.3}
+.sday .si:hover{background:var(--accent-soft)}
+.sday .si .sn{font-weight:600;overflow-wrap:anywhere}
+.sday .si .stp{margin:2px 0 0;align-self:flex-start;font-size:10px}
+.sched-sel{display:flex;align-items:center;gap:8px}.sched-sel select{min-height:34px;padding:4px 10px;width:auto}
+@media (max-width:1000px){.sched{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.sched{grid-template-columns:minmax(0,1fr)}}
+
 </style>
 </head><body>
 
@@ -1187,7 +1207,7 @@ function homeSheet(){
 }
 
 function patientHead(p,tab){
-  var meta=[p.mrn?'Record '+esc(p.mrn):'',p.age!=null?fmt(p.age,0)+(p.sex?' '+esc(p.sex.charAt(0)):''):(p.sex?esc(p.sex):''),p.access?esc(p.access)+(p.accessSub?' · '+esc(p.accessSub):'')+(p.accessNote?' ('+esc(p.accessNote)+')':''):'',p.schedule?esc(p.schedule):'',p.dryWeight!=null?'Dry weight '+fmt(p.dryWeight)+' kg':'',nurseNames(p)?'Nurse: '+esc(nurseNames(p)):''].filter(Boolean).join(' · ');
+  var meta=[p.mrn?'Record '+esc(p.mrn):'',p.age!=null?fmt(p.age,0)+(p.sex?' '+esc(p.sex.charAt(0)):''):(p.sex?esc(p.sex):''),p.access?esc(p.access)+(p.accessSub?' · '+esc(p.accessSub):'')+(p.accessNote?' ('+esc(p.accessNote)+')':''):'',p.schedule?esc(p.schedule):'',p.dryWeight!=null?'Dry weight '+fmt(p.dryWeight)+' kg':'',(nurseNames(p)?'Nurse: '+esc(nurseNames(p)):'No nurse assigned')+(isAdmin?' <button type="button" class="link-btn" data-act="assign-p" data-id="'+p.id+'">Assign</button>':''),setOf(p)?(setOf(p)==='IPD'?'Inpatient (IPD)':'Outpatient (OPD)'):''].filter(Boolean).join(' · ');
   return '<a class="back" href="#home">← All patients</a><div class="ph"><div style="display:flex;gap:14px;align-items:center;min-width:0"><span class="av lg" aria-hidden="true">'+esc(initials(p.name))+'</span><div><h2>'+esc(p.name||'Unnamed')+(p.status==='archived'?' <span class="pill mute">Archived</span>':'')+'</h2><p class="meta">'+meta+'</p></div></div>'+(canWrite&&p.status!=='archived'?'<a class="btn primary" href="#p-'+p.id+'-log">Log session</a>':'')+'</div>'
    +'<nav class="subtabs" aria-label="Patient sections">'+tabsHTML(p,tab)+'</nav>';
 }
@@ -1407,6 +1427,7 @@ function patientFormHTML(p,isNew){
    +fld('p-access','Access',true,sin('p-access',ACCESS,p.access),'','access')
    +fld('p-accsub','Exact access site',true,pSubCtl(p),'','accsub')
    +fld('p-note','Access site',true,tin('p-note',p.accessNote,'e.g. Left forearm'),'','accessSite')
+   +fld('p-setting','OPD or IPD',true,sin('p-setting',SETTINGS,p.setting||setOf(p)),'OPD is outpatient. IPD is inpatient.','setting')
    +fld('p-sched','Schedule',true,tin('p-sched',p.schedule,'e.g. Mon, Wed, Fri'),'','sched')
    +fld('p-ktv','Kt/V target',true,nin('p-ktv',p.targetKtv),'','ktvTarget')
    +(isAdmin?fld('p-nurses','Assigned nurses',true,nurseChecks(p),'Only these nurses and admins can see this patient.','assign'):'')
@@ -1765,8 +1786,9 @@ function boardHTML(){
     var p=r.p,s=r.st.s,rs=s?rowsFor(p.id).filter(function(x){return x.s.id===s.id;})[0]:null,fl=rs?rs.c.flags.length:0;
     var pill=r.st.k==='none'?'<span class="pill mute">Not started</span>':(r.st.k==='prog'?'<span class="pill warn">In progress</span>':'<span class="pill ok">Completed</span>')+(fl?'<span class="pill '+(rs.c.flags.some(function(f){return f.level==='crit';})?'crit':'warn')+'">'+fl+(fl===1?' flag':' flags')+'</span>':'');
     var act=r.st.k==='none'?(canWrite?'<a class="btn small primary" href="#p-'+p.id+'-log">Start session</a>':''):(r.st.k==='prog'?'<a class="btn small" href="#s-'+s.id+(canWrite?'-edit':'')+'">'+(canWrite?'Continue':'Open')+'</a>':'<a class="btn small" href="#s-'+s.id+'">Open</a>');
-    h+='<div class="brow"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><div><a class="nm" href="#p-'+p.id+'">'+esc(p.name||'Unnamed')+'</a><div class="sub">'+esc([p.mrn,p.schedule,nurseNames(p)?'Nurse: '+nurseNames(p):''].filter(Boolean).join(' · '))+'</div>'+(runClock(s)?'<div class="clock">'+esc(runClock(s))+'</div>':'')+(r.st.k==='none'?endoLine(p):'')+'</div><div>'+pill+'</div><div>'+act+'</div></div>';
+    h+='<div class="brow"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><div><a class="nm" href="#p-'+p.id+'">'+esc(p.name||'Unnamed')+'</a>'+setPill(p)+'<div class="sub">'+esc([p.mrn,p.schedule,nurseNames(p)?'Nurse: '+nurseNames(p):''].filter(Boolean).join(' · '))+'</div>'+(runClock(s)?'<div class="clock">'+esc(runClock(s))+'</div>':'')+(r.st.k==='none'?endoLine(p):'')+'</div><div>'+pill+'</div><div>'+act+'</div></div>';
   });
+  h+=scheduleHTML();
   var tb=todoBoard();
   h+='<div class="sec-h"><h3>To do and reminders</h3><span class="sub">'+(tb.tk.length+tb.au.length)+' open</span></div>';
   if(!tb.tk.length&&!tb.au.length)h+='<p class="sub">Nothing open. Add to-dos from each patient’s To do tab.</p>';
@@ -2135,13 +2157,13 @@ function saveSession(final){
 }
 function savePatient(id){
   var g=function(i){var el=$('#'+i);return el?el.value:'';},err=$('#p-err'),miss=[];
-  [['p-name','Full name',1],['p-mrn','Record number',1],['p-age','Age',2],['p-sex','Sex',1],['p-height','Height',2],['p-dry','Dry weight',2],['p-dx','Diagnosis',1],['p-access','Access',1],['p-note','Access site',1],['p-sched','Schedule',1],['p-ktv','Kt/V target',2]].forEach(function(f){var v=g(f[0]);if(f[2]===2?!(num(v)>0):!v.trim())miss.push([f[0],f[1]]);});
+  [['p-name','Full name',1],['p-mrn','Record number',1],['p-age','Age',2],['p-sex','Sex',1],['p-height','Height',2],['p-dry','Dry weight',2],['p-dx','Diagnosis',1],['p-access','Access',1],['p-note','Access site',1],['p-sched','Schedule',1],['p-setting','OPD or IPD',1],['p-ktv','Kt/V target',2]].forEach(function(f){var v=g(f[0]);if(f[2]===2?!(num(v)>0):!v.trim())miss.push([f[0],f[1]]);});
   $$('#pform .f.bad').forEach(function(f){f.classList.remove('bad');});
   if(!g('p-accsub').trim()||(/^Other/.test(g('p-accsub'))&&!g('p-accnote').trim()))miss.push(['p-accsub','Exact access site']);
   if(isAdmin&&$('input[name=pn]')&&!$$('input[name=pn]:checked').length)miss.push(['p-nurses','Assigned nurses']);
   if(miss.length){miss=domSort(miss);miss.forEach(function(m){var f=$('[data-f="'+m[0]+'"]');if(f)f.classList.add('bad');});err.innerHTML='Fill in: '+jumpList(miss)+'. Tap an item to go to it.';err.hidden=false;jumpTo(miss[0][0]);return;}
   err.hidden=true;
-  var data={name:g('p-name').trim(),mrn:g('p-mrn').trim(),dryWeight:num(g('p-dry')),age:num(g('p-age')),sex:g('p-sex'),height:num(g('p-height')),diagnosis:g('p-dx').trim(),access:g('p-access'),accessNote:g('p-note').trim(),schedule:g('p-sched').trim(),targetKtv:num(g('p-ktv')),accessSub:g('p-accsub'),accessSubNote:g('p-accnote').trim()},now=nowISO(),pending;
+  var data={name:g('p-name').trim(),mrn:g('p-mrn').trim(),dryWeight:num(g('p-dry')),age:num(g('p-age')),sex:g('p-sex'),height:num(g('p-height')),diagnosis:g('p-dx').trim(),access:g('p-access'),accessNote:g('p-note').trim(),schedule:g('p-sched').trim(),targetKtv:num(g('p-ktv')),accessSub:g('p-accsub'),accessSubNote:g('p-accnote').trim(),setting:g('p-setting')},now=nowISO(),pending;
   if(isAdmin&&$('input[name=pn]'))data.nurses=$$('input[name=pn]:checked').map(function(x){return x.value;});else if(!id)data.nurses=[me.id];
   if(id){
     var cur=patients[id],fields=[];
@@ -2231,7 +2253,7 @@ function loadExample(){
   ];
   P.forEach(function(pt,pi){
     var pid=newId('p')+pi,sch=dsOf(pt.days.slice());
-    jobs.push(db.doc('patients/'+pid).set(Object.assign({name:pt.n,mrn:pt.mrn,dryWeight:pt.dry,age:pt.age,sex:pt.sex,height:pt.ht,diagnosis:pt.dx,access:pt.acc,accessNote:pt.note,schedule:sch,targetKtv:pt.ktv,status:'active',accessSub:['Radiocephalic (wrist)','Upper-arm straight','Right internal jugular','Brachiocephalic (elbow)','Right femoral'][pi],nurses:(function(){var NN=staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;});return NN.length?[NN[pi%NN.length].id]:[];})()},base)));
+    jobs.push(db.doc('patients/'+pid).set(Object.assign({name:pt.n,mrn:pt.mrn,dryWeight:pt.dry,age:pt.age,sex:pt.sex,height:pt.ht,diagnosis:pt.dx,access:pt.acc,accessNote:pt.note,schedule:sch,targetKtv:pt.ktv,status:'active',setting:pt.cfg.setting||'OPD',accessSub:['Radiocephalic (wrist)','Upper-arm straight','Right internal jugular','Brachiocephalic (elbow)','Right femoral'][pi],nurses:(function(){var NN=staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;});return NN.length?[NN[pi%NN.length].id]:[];})()},base)));
     var ss=genSessions(Object.assign({days:pt.days,dry:pt.dry},pt.cfg)),n=ss.length,sids=ss.map(function(s,i){return newId('s')+pi+'x'+i;});
     ss.forEach(function(s,i){
       var extra={};
@@ -2459,7 +2481,7 @@ document.addEventListener('pointermove',function(e){
   if(!sigDown)return;var c=sigDown,p=sigPt(c,e),x=c.getContext('2d');
   x.lineTo(p[0],p[1]);x.stroke();x.beginPath();x.moveTo(p[0],p[1]);e.preventDefault();
 });
-function sigEnd(){if(!sigDown)return;sigDown=null;if($('#sform'))updateForm();}
+function sigEnd(){if(!sigDown)return;sigDown=null;if($('#sform'))updateForm();if($('#pfform'))pfAuto();}
 document.addEventListener('pointerup',sigEnd);document.addEventListener('pointercancel',sigEnd);
 
 /* ---- small image for profile ---- */
@@ -2519,7 +2541,7 @@ function stepsView(s){
 }
 
 /* ---- views: profile and staff ---- */
-function setPfPhoto(u){var b=$('#pf-photo');if(b)b.innerHTML=u?'<img src="'+esc(u)+'" alt="Your photo">':'<span class="av lg" aria-hidden="true">'+esc(initials((myStaff().name||myName())))+'</span>';}
+function setPfPhoto(u){var b=$('#pf-photo');if(b)b.innerHTML=u?'<img src="'+esc(u)+'" alt="Your photo">':'<span class="av lg" aria-hidden="true">'+esc(initials((myStaff().name||myName())))+'</span>';pfAuto();}
 function rdOK(v){return RREQ.every(function(k){return v[k]!=null&&v[k]!=='';});}
 function needReadings(s){var m=s.actualMin>0?Math.min(s.actualMin,s.durationMin||s.actualMin):(s.durationMin||0);return Math.max(1,Math.floor(m/60));}
 function stageOfReq(r){return r[4]||(r[3]?'c':'a');}
@@ -2547,10 +2569,20 @@ function viewMyProfile(){
    +fld('pf-role','Role',false,'<input id="pf-role" type="text" value="'+(isAdmin?'Admin':'Hemodialysis nurse')+'" readonly>','Set by an admin.','',' ')
    +'</div></div>'
    +'<div class="ess"><div class="ess-h"><span>Signature</span>'+REQT+'</div><p class="sub hint" style="margin:-4px 0 12px">Draw your signature once. It is shown next to the steps you complete.'+info('sig')+'</p>'+fld('pf-sig','Signature',true,sigField('pf-sig',s.signature))+'</div>'
-   +'<p class="err" id="pf-err" role="alert" hidden></p><div class="actions"><button type="button" class="btn primary" data-act="pf-save">Save profile</button></div></form>';
+   +'<p class="err" id="pf-err" role="alert" hidden></p><div class="actions"><button type="button" class="btn primary" data-act="pf-save">Done</button><span class="sub" id="pf-state">Changes save automatically.</span></div></form>';
   return h;
 }
-function saveProfile(){
+function refreshTop(){var t=$('.topbar');if(!t)return;var d=document.createElement('div');d.innerHTML=topbar();if(d.firstChild)t.replaceWith(d.firstChild);}
+var pfT=null;
+function pfAuto(){if(!$('#pfform'))return;clearTimeout(pfT);var st=$('#pf-state');if(st)st.textContent='Saving…';pfT=setTimeout(function(){saveProfile(true);},700);}
+function saveProfile(auto){
+  if(auto===true){
+    var c0=staff[me.id]||{},nm0=($('#pf-name').value||'').trim(),sg0=getSig('pf-sig'),now0=nowISO(),ph0=pfDraft.photo!==undefined?pfDraft.photo:(c0.photo||'');
+    var d0=Object.assign({active:true,createdAt:now0},strip(c0),{name:nm0.length>=2?nm0:(c0.name||myName()),license:($('#pf-lic').value||'').trim(),signature:sg0||c0.signature||'',photo:ph0,role:isAdmin?'admin':'nurse',email:c0.email||me.email||'',updatedAt:now0,updatedBy:me.id});
+    staff[me.id]=Object.assign({id:me.id},d0);refreshTop();
+    Promise.resolve(db.doc('staff/'+me.id).set(d0)).then(function(){var st=$('#pf-state');if(st)st.textContent='Saved automatically';}).catch(function(){var st=$('#pf-state');if(st)st.textContent='Could not save. Check your connection.';});
+    return;
+  }
   var err=$('#pf-err'),miss=[],nm=($('#pf-name').value||'').trim(),lic=($('#pf-lic').value||'').trim(),sg=getSig('pf-sig');
   $$('#pfform .f.bad').forEach(function(f){f.classList.remove('bad');});
   if(nm.length<2)miss.push(['pf-name','Full name']);
@@ -2563,6 +2595,7 @@ function saveProfile(){
   err.hidden=true;
   var cur=staff[me.id]||{},now=nowISO(),photo=pfDraft.photo!==undefined?pfDraft.photo:(cur.photo||'');
   var doc=Object.assign({active:true,createdAt:now},strip(cur),{name:nm,license:lic,signature:sg,photo:photo,role:isAdmin?'admin':'nurse',email:cur.email||me.email||'',updatedAt:now,updatedBy:me.id});
+  staff[me.id]=Object.assign({id:me.id},doc);
   afterWrite(Promise.resolve(db.doc('staff/'+me.id).set(doc)).then(function(){return logEvent('profile-edit',null,null);}).then(function(){pfDraft={photo:undefined};toast('Profile saved');render();})).catch(function(){});
 }
 function viewStaff(){
@@ -2581,7 +2614,7 @@ function viewStaff(){
   L.forEach(function(u){
     var cnt=Object.keys(rawP).filter(function(k){return (rawP[k].nurses||[]).indexOf(u.id)>=0;}).length,off=u.active===false;
     h+='<tr'+(off?' class="off"':'')+'><td><div class="stn"><span class="av" aria-hidden="true">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc(initials(u.name)))+'</span><div><b>'+esc(u.name||'Unnamed')+'</b><div class="sub">'+esc(u.email||'')+'</div></div></div></td><td>'+(u.role==='admin'?'Admin':'Nurse')+(off?' <span class="pill mute">Off</span>':'')+'</td><td class="mono">'+(u.license?esc(u.license):'<span class="muted">missing</span>')+'</td><td>'+(u.signature?'<img class="sigimg" src="'+esc(u.signature)+'" alt="Signature of '+esc(u.name||'')+'">':'<span class="muted">missing</span>')+'</td><td>'+cnt+'</td><td>'
-     +(authApi&&u.id!==me.id?'<div class="acts"><button type="button" class="btn small" data-act="staff-reset" data-id="'+esc(u.id)+'">Reset password</button><button type="button" class="btn small" data-act="staff-toggle" data-id="'+esc(u.id)+'">'+(off?'Turn on':'Turn off')+'</button></div>':'')+'</td></tr>';
+     +(u.role!=='admin'&&u.active!==false?'<div class="acts"><button type="button" class="btn small primary" data-act="assign-n" data-id="'+esc(u.id)+'">Assign patients</button></div>':'')+(authApi&&u.id!==me.id?'<div class="acts"><button type="button" class="btn small" data-act="staff-reset" data-id="'+esc(u.id)+'">Reset password</button><button type="button" class="btn small" data-act="staff-toggle" data-id="'+esc(u.id)+'">'+(off?'Turn on':'Turn off')+'</button></div>':'')+'</td></tr>';
   });
   return h+'</tbody></table></div><p class="sub" style="margin-top:12px">Admins assign nurses to each patient from the patient’s Profile tab. A nurse only sees the patients assigned to them.</p>';
 }
@@ -2621,10 +2654,70 @@ function pSubCtl(p){return '<input type="hidden" id="p-accsub" value="'+val(p.ac
 function todayBanner(rows){
   if(isAdmin){
     var ids={};rows.forEach(function(r){(r.p.nurses||[]).forEach(function(i){ids[i]=1;});});
-    return '<p class="you"><b>'+rows.length+(rows.length===1?' patient':' patients')+'</b> today across '+Object.keys(ids).length+(Object.keys(ids).length===1?' nurse':' nurses')+'. You can see every record.</p>';
+    var io0=rows.filter(function(r){return setOf(r.p)==='IPD';}).length,oo0=rows.filter(function(r){return setOf(r.p)==='OPD';}).length;
+    return '<p class="you"><b>'+rows.length+(rows.length===1?' patient':' patients')+'</b> today ('+oo0+' outpatient, '+io0+' inpatient) across '+Object.keys(ids).length+(Object.keys(ids).length===1?' nurse':' nurses')+'. You can see every record.</p>';
   }
   var nm=rows.map(function(r){return (r.p.name||'Unnamed').replace(/\s*\(sample\)\s*$/i,'');}).slice(0,6).join('; ');
-  return '<p class="you">You have <b>'+rows.length+(rows.length===1?' patient':' patients')+'</b> to handle today'+(rows.length?': '+esc(nm)+(rows.length>6?' and '+(rows.length-6)+' more':''):'')+'. You only see patients assigned to you.</p>';
+  var io=rows.filter(function(r){return setOf(r.p)==='IPD';}).length,oo=rows.filter(function(r){return setOf(r.p)==='OPD';}).length;
+  return '<p class="you">You have <b>'+rows.length+(rows.length===1?' patient':' patients')+'</b> to handle today'+(rows.length?' ('+oo+' outpatient, '+io+' inpatient)':'')+(rows.length?': '+esc(nm)+(rows.length>6?' and '+(rows.length-6)+' more':''):'')+'. You only see patients assigned to you.</p>';
+}
+
+
+/* ---- OPD / IPD, schedule, assignment ---- */
+var schedNurse='';
+function setOf(p){if(p.setting)return p.setting;var ps=pSessions(p.id||'-');for(var i=ps.length-1;i>=0;i--)if(ps[i].setting)return ps[i].setting;return '';}
+function setPill(p,short){var v=setOf(p);return v?'<span class="stp '+(v==='IPD'?'ipd':'opd')+'">'+(short?v:(v==='IPD'?'Inpatient · IPD':'Outpatient · OPD'))+'</span>':'';}
+function scheduleHTML(){
+  var list=Object.keys(patients).map(function(k){return patients[k];}).filter(function(p){return p.status!=='archived';});
+  if(isAdmin&&schedNurse)list=list.filter(function(p){return (p.nurses||[]).indexOf(schedNurse)>=0;});
+  var DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],days=[],tot=0,uniq={},opd=0,ipd=0,i;
+  for(i=0;i<14;i++){
+    var d=new Date();d.setDate(d.getDate()+i);var dow=d.getDay();
+    var ps=list.filter(function(p){return schedDays(p.schedule).indexOf(dow)>=0;}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+    ps.forEach(function(p){tot++;uniq[p.id]=1;if(setOf(p)==='IPD')ipd++;else if(setOf(p)==='OPD')opd++;});
+    days.push({d:d,dow:dow,ps:ps,i:i});
+  }
+  var sel='';
+  if(isAdmin){sel='<label class="sched-sel"><span class="sub">Show</span><select id="sched-nurse"><option value="">All nurses</option>'+staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;}).map(function(u){return '<option value="'+esc(u.id)+'"'+(u.id===schedNurse?' selected':'')+'>'+esc(u.name||'Unnamed')+'</option>';}).join('')+'</select></label>';}
+  var h='<div class="sec-h"><h3>'+(isAdmin?(schedNurse&&staff[schedNurse]?esc(staff[schedNurse].name)+'’s schedule':'Schedule for all nurses'):'My schedule')+' · next 2 weeks</h3>'+sel+'</div>';
+  h+='<p class="sub" style="margin:0 0 10px"><b>'+tot+'</b> '+(tot===1?'session':'sessions')+' for <b>'+Object.keys(uniq).length+'</b> '+(Object.keys(uniq).length===1?'patient':'patients')+' · '+opd+' outpatient (OPD) · '+ipd+' inpatient (IPD). Days come from each patient’s schedule.</p>';
+  h+='<div class="sched">'+days.map(function(x){
+    var cls='sday'+(x.i===0?' now':'')+((x.dow===0||x.dow===6)?' wk':'')+(x.ps.length?'':' none');
+    return '<div class="'+cls+'"><div class="dh"><b>'+DN[x.dow]+'</b> '+x.d.getDate()+' '+x.d.toLocaleDateString('en-GB',{month:'short'})+(x.i===0?' <span class="tdy">Today</span>':'')+'<span class="n">'+x.ps.length+'</span></div>'
+     +(x.ps.length?x.ps.map(function(p){return '<a class="si" href="#p-'+p.id+'"><span class="sn">'+esc((p.name||'Unnamed').replace(/\s*\(sample\)\s*$/i,''))+'</span>'+setPill(p,true)+(isAdmin&&nurseNames(p)?'<span class="sub">'+esc(nurseNames(p))+'</span>':'')+'</a>';}).join(''):'<span class="sub">No sessions</span>')+'</div>';
+  }).join('')+'</div>';
+  return h;
+}
+function assignModal(kind,id){
+  var items,cur;
+  if(kind==='nurse'){
+    var u=staff[id];if(!u)return;
+    items=Object.keys(rawP).map(function(k){return rawP[k];}).filter(function(p){return p.status!=='archived';}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');}).map(function(p){return {id:p.id,label:p.name||'Unnamed',sub:setOf(p)||'',on:(p.nurses||[]).indexOf(id)>=0};});
+    var title='Assign patients to '+(u.name||'nurse'),intro='Tick every patient this nurse handles. The nurse then sees them on the Today page.';
+  }else{
+    var p0=rawP[id]||patients[id];if(!p0)return;
+    items=staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;}).map(function(u){return {id:u.id,label:u.name||'Unnamed',sub:u.license?'Lic. '+u.license:'no license on file',on:(p0.nurses||[]).indexOf(u.id)>=0};});
+    var title='Assign nurses to '+(p0.name||'patient'),intro='Only the nurses ticked here (and admins) can see this patient.';
+  }
+  if(!items.length){toast(kind==='nurse'?'There are no patients yet.':'There are no nurses yet. Add staff first.');return;}
+  var h='<h3 id="m-title">'+esc(title)+'</h3><p class="sub" style="margin:4px 0 12px">'+esc(intro)+'</p><div class="m-opts" style="max-height:48vh;overflow:auto">'+items.map(function(x){return '<label class="m-opt"><input type="checkbox" name="as" value="'+esc(x.id)+'"'+(x.on?' checked':'')+'><span>'+esc(x.label)+(x.sub?' <span class="sub">· '+esc(x.sub)+'</span>':'')+'</span></label>';}).join('')+'</div><p class="err" id="m-err" role="alert" hidden></p><div class="actions"><button type="button" class="btn primary" data-act="modal-ok">Save assignment</button><button type="button" class="btn" data-act="modal-cancel">Cancel</button></div>';
+  openModal(h,{onOk:function(){
+    var on=$$('input[name=as]:checked').map(function(x){return x.value;}),now=nowISO(),jobs=[];
+    function write(pid,arr){
+      var p=rawP[pid];if(!p)return;
+      var doc=Object.assign({},strip(p),{nurses:arr,updatedAt:now,updatedBy:me.id,edits:(p.edits||[]).concat([{kind:'Edited',by:me.id,byName:myName(),at:now,fields:['assigned nurses']}]).slice(-40)});
+      jobs.push(Promise.resolve(db.doc('patients/'+pid).set(doc)).then(function(){return logEvent('patient-edit',pid,null);}));
+    }
+    if(kind==='nurse'){
+      items.forEach(function(x){var p=rawP[x.id],has=(p.nurses||[]).indexOf(id)>=0,want=on.indexOf(x.id)>=0;if(has===want)return;write(x.id,want?(p.nurses||[]).concat([id]):(p.nurses||[]).filter(function(n){return n!==id;}));});
+    }else{
+      var err=$('#m-err');if(!on.length){err.textContent='Choose at least one nurse.';err.hidden=false;return false;}
+      write(id,on);
+    }
+    if(!jobs.length){return true;}
+    afterWrite(Promise.all(jobs).then(function(){toast('Assignment saved');scheduleRender();})).catch(function(){});
+    return true;
+  }});
 }
 
 /* ---- my extra click, key and change handling ---- */
@@ -2640,6 +2733,8 @@ document.addEventListener('click',function(e){
   else if(act==='jump-next'){var s=collect(),mm=domSort(missing(s,true));if(mm.length)jumpTo(mm[0][0]);}
   else if(act==='sig-clear'){var c=$('#'+a.getAttribute('data-t'));if(c){c.getContext('2d').clearRect(0,0,c.width,c.height);c.dataset.has='';if($('#sform'))updateForm();}}
   else if(act==='theme')toggleTheme();
+  else if(act==='assign-n')assignModal('nurse',a.getAttribute('data-id'));
+  else if(act==='assign-p')assignModal('patient',a.getAttribute('data-id'));
   else if(act==='pf-photo'){var f=$('#pf-file');if(f)f.click();}
   else if(act==='pf-photo-rm'){pfDraft.photo='';setPfPhoto('');}
   else if(act==='pf-save')saveProfile();
@@ -2656,11 +2751,13 @@ document.addEventListener('keydown',function(e){
 document.addEventListener('focusin',function(e){var t=e.target;if(t&&t.tagName==='SELECT'&&(t.id==='f-acc'||t.id==='p-access'||t.id==='f-atype'))t.dataset.prev=t.value;});
 document.addEventListener('change',function(e){
   var t=e.target;if(!t)return;
+  if(t.id==='sched-nurse'){schedNurse=t.value;render();return;}
   if(t.id==='f-acc'||t.id==='p-access')askSub(t.id==='f-acc'?'acc':'pacc',t.dataset.prev===undefined?'':t.dataset.prev);
   else if(t.id==='f-atype')askSub('anti',t.dataset.prev===undefined?'':t.dataset.prev);
   else if(t.id==='f-wrel'){var n=$('#f-wname'),form=$('#sform');if(n&&t.value==='Patient'&&!n.value.trim()&&form){var pp=patients[form.getAttribute('data-pid')];if(pp&&pp.name)n.value=pp.name.replace(/\s*\(sample\)\s*$/i,'');updateForm();}}
   else if(t.id==='pf-file'&&t.files&&t.files[0]){squareThumb(t.files[0],192).then(function(u){pfDraft.photo=u;setPfPhoto(u);}).catch(function(){toast('That picture could not be read.');});t.value='';}
 });
+document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#pfform')&&!e.target.classList.contains('sig'))pfAuto();});
 initTheme();
 
 function saveFile(name,text){
