@@ -488,6 +488,13 @@ tr.off td{opacity:.55}
 :root[data-theme="dark"] .stp.pt-risk{background:#4A3510;color:#FFE0A0}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stp.pt-inf{background:#4A1F1A;color:#FFC9C0}:root:not([data-theme="light"]) .stp.pt-tox{background:#3A2656;color:#E3D0FF}:root:not([data-theme="light"]) .stp.pt-risk{background:#4A3510;color:#FFE0A0}}
 .plist .sp .stp{margin-right:4px}
+.stp.og-tr{background:#DCEBFA;color:#12447A}
+.stp.og-nw{background:#DDF3E4;color:#165A2E}
+.stp.og-vs{background:#F3E8D6;color:#6B4A12}
+:root[data-theme="dark"] .stp.og-tr{background:#1B3550;color:#BFDDFF}
+:root[data-theme="dark"] .stp.og-nw{background:#1B3F2A;color:#BDEBCB}
+:root[data-theme="dark"] .stp.og-vs{background:#4A3A1B;color:#F2D9A8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stp.og-tr{background:#1B3550;color:#BFDDFF}:root:not([data-theme="light"]) .stp.og-nw{background:#1B3F2A;color:#BDEBCB}:root:not([data-theme="light"]) .stp.og-vs{background:#4A3A1B;color:#F2D9A8}}
 
 </style>
 </head><body>
@@ -1197,6 +1204,7 @@ function railHTML(r){
     h+='<li><a class="prow'+((r.pid===p.id)?' on':'')+'" href="#p-'+p.id+'"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><span class="nm">'+esc(p.name||'Unnamed')+'</span><span class="sp">'+typePill(p)+''+spark(rows.slice(-8).map(function(x){return x.s.preWt;}),p.dryWeight,84,24)+pill+'</span><span class="mt">'+esc([p.mrn,p.schedule].filter(Boolean).join(' · ')||' ')+'</span></a></li>';
   });
   h+='</ul>';
+  if(isAdmin&&canWrite&&sampleMissing())h+='<p style="margin-top:12px"><button type="button" class="btn small" data-act="load-example">Add the missing sample patients</button></p>';
   if(!list.length)h+='<p class="sub" style="margin-top:12px">No patients match "'+esc(q)+'".</p>';
   var arch=Object.keys(patients).some(function(k){return patients[k].status==='archived';});
   if(arch)h+='<p style="margin-top:12px"><button type="button" class="link-btn" data-act="toggle-archived">'+(showArchived?'Hide':'Show')+' archived patients</button></p>';
@@ -1228,7 +1236,7 @@ function homeSheet(){
 }
 
 function patientHead(p,tab){
-  var meta=[p.mrn?'Record '+esc(p.mrn):'',p.age!=null?fmt(p.age,0)+(p.sex?' '+esc(p.sex.charAt(0)):''):(p.sex?esc(p.sex):''),p.access?esc(p.access)+(p.accessSub?' · '+esc(p.accessSub):'')+(p.accessNote?' ('+esc(p.accessNote)+')':''):'',p.schedule?esc(p.schedule):'',p.dryWeight!=null?'Dry weight '+fmt(p.dryWeight)+' kg':'',(nurseNames(p)?'Nurse: '+esc(nurseNames(p)):'No nurse assigned')+(isAdmin?' <button type="button" class="link-btn" data-act="assign-p" data-id="'+p.id+'">Assign</button>':''),setOf(p)?(setOf(p)==='IPD'?'Inpatient (IPD)':'Outpatient (OPD)'):''].filter(Boolean).join(' · ');
+  var meta=[p.mrn?'Record '+esc(p.mrn):'',p.age!=null?fmt(p.age,0)+(p.sex?' '+esc(p.sex.charAt(0)):''):(p.sex?esc(p.sex):''),p.access?esc(p.access)+(p.accessSub?' · '+esc(p.accessSub):'')+(p.accessNote?' ('+esc(p.accessNote)+')':''):'',p.schedule?esc(p.schedule):'',p.dryWeight!=null?'Dry weight '+fmt(p.dryWeight)+' kg':'',(nurseNames(p)?'Nurse: '+esc(nurseNames(p)):'No nurse assigned')+(isAdmin?' <button type="button" class="link-btn" data-act="assign-p" data-id="'+p.id+'">Assign</button>':''),setOf(p)?(setOf(p)==='IPD'?'Inpatient (IPD)':'Outpatient (OPD)'):'','Type: '+ptOf(p)+(p.ptypeNote?' ('+esc(p.ptypeNote)+')':''),'Status: '+orOf(p)+(p.originNote&&orOf(p)!=='Regular (maintenance)'?' ('+esc(p.originNote)+')':''),sinceTxt(p)].filter(Boolean).join(' · ');
   return '<a class="back" href="#home">← All patients</a><div class="ph"><div style="display:flex;gap:14px;align-items:center;min-width:0"><span class="av lg" aria-hidden="true">'+esc(initials(p.name))+'</span><div><h2>'+esc(p.name||'Unnamed')+(p.status==='archived'?' <span class="pill mute">Archived</span>':'')+'</h2><p class="meta">'+meta+'</p></div></div>'+(canWrite&&p.status!=='archived'?'<a class="btn primary" href="#p-'+p.id+'-log">Log session</a>':'')+'</div>'
    +'<nav class="subtabs" aria-label="Patient sections">'+tabsHTML(p,tab)+'</nav>';
 }
@@ -1454,6 +1462,9 @@ function patientFormHTML(p,isNew){
    +fld('p-setting','OPD or IPD',true,sin('p-setting',SETTINGS,p.setting||setOf(p)),'OPD is outpatient. IPD is inpatient.','setting')
    +fld('p-ptype','Patient type',true,sin('p-ptype',PTYPES,ptOf(p)),'','ptype')
    +fld('p-ptnote','Type details',false,tin('p-ptnote',p.ptypeNote||'','For example: HBsAg positive, dedicated machine'),'Precautions or reason, shown on the dashboard.')
+   +fld('p-origin','Patient status',true,sin('p-origin',ORIGINS,orOf(p)),'Regular, new, transferred in or out, visiting, returning, or a one-time urgent run.')
+   +fld('p-onote','Status details',false,tin('p-onote',p.originNote||'','e.g. transferred from another center on 3 Oct'),'Where from or where to, and when.')
+   +fld('p-start','Dialysis start date',true,'<input id="p-start" type="date" value="'+val(p.startDate)+'">','The date of the first hemodialysis treatment ever, not the first one here.')
    +fld('p-sched','Schedule',true,tin('p-sched',p.schedule,'e.g. Mon, Wed, Fri'),'','sched')
    +fld('p-ktv','Kt/V target',true,nin('p-ktv',p.targetKtv),'','ktvTarget')
    +(isAdmin?fld('p-nurses','Assigned nurses',true,nurseChecks(p),'Only these nurses and admins can see this patient.','assign'):'')
@@ -1814,7 +1825,7 @@ function boardHTML(){
     var p=r.p,s=r.st.s,rs=s?rowsFor(p.id).filter(function(x){return x.s.id===s.id;})[0]:null,fl=rs?rs.c.flags.length:0;
     var pill=r.st.k==='none'?'<span class="pill mute">Not started</span>':(r.st.k==='prog'?'<span class="pill warn">In progress</span>':'<span class="pill ok">Completed</span>')+(fl?'<span class="pill '+(rs.c.flags.some(function(f){return f.level==='crit';})?'crit':'warn')+'">'+fl+(fl===1?' flag':' flags')+'</span>':'');
     var act=r.st.k==='none'?(canWrite?'<a class="btn small primary" href="#p-'+p.id+'-log">Start session</a>':''):(r.st.k==='prog'?'<a class="btn small" href="#s-'+s.id+(canWrite?'-edit':'')+'">'+(canWrite?'Continue':'Open')+'</a>':'<a class="btn small" href="#s-'+s.id+'">Open</a>');
-    h+='<div class="brow"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><div><a class="nm" href="#p-'+p.id+'">'+esc(p.name||'Unnamed')+'</a>'+setPill(p)+typePill(p)+'<div class="sub">'+esc([p.mrn,p.schedule,nurseNames(p)?'Nurse: '+nurseNames(p):'',(ptOf(p)!=='Standard'&&p.ptypeNote)?p.ptypeNote:''].filter(Boolean).join(' · '))+'</div>'+(runClock(s)?'<div class="clock">'+esc(runClock(s))+'</div>':'')+(r.st.k==='none'?endoLine(p):'')+'</div><div>'+pill+'</div><div>'+act+'</div></div>';
+    h+='<div class="brow"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><div><a class="nm" href="#p-'+p.id+'">'+esc(p.name||'Unnamed')+'</a>'+setPill(p)+typePill(p)+origPill(p)+'<div class="sub">'+esc([p.mrn,p.schedule,nurseNames(p)?'Nurse: '+nurseNames(p):'',sinceTxt(p),(orOf(p)!=='Regular (maintenance)'&&p.originNote)?p.originNote:'',(ptOf(p)!=='Standard'&&p.ptypeNote)?p.ptypeNote:''].filter(Boolean).join(' · '))+'</div>'+(runClock(s)?'<div class="clock">'+esc(runClock(s))+'</div>':'')+(r.st.k==='none'?endoLine(p):'')+'</div><div>'+pill+'</div><div>'+act+'</div></div>';
   });
   h+=scheduleHTML();
   var tb=todoBoard();
@@ -2185,13 +2196,13 @@ function saveSession(final){
 }
 function savePatient(id){
   var g=function(i){var el=$('#'+i);return el?el.value:'';},err=$('#p-err'),miss=[];
-  [['p-name','Full name',1],['p-mrn','Record number',1],['p-age','Age',2],['p-sex','Sex',1],['p-height','Height',2],['p-dry','Dry weight',2],['p-dx','Diagnosis',1],['p-access','Access',1],['p-note','Access site',1],['p-sched','Schedule',1],['p-setting','OPD or IPD',1],['p-ptype','Patient type',1],['p-ktv','Kt/V target',2]].forEach(function(f){var v=g(f[0]);if(f[2]===2?!(num(v)>0):!v.trim())miss.push([f[0],f[1]]);});
+  [['p-name','Full name',1],['p-mrn','Record number',1],['p-age','Age',2],['p-sex','Sex',1],['p-height','Height',2],['p-dry','Dry weight',2],['p-dx','Diagnosis',1],['p-access','Access',1],['p-note','Access site',1],['p-sched','Schedule',1],['p-setting','OPD or IPD',1],['p-ptype','Patient type',1],['p-origin','Patient status',1],['p-start','Dialysis start date',1],['p-ktv','Kt/V target',2]].forEach(function(f){var v=g(f[0]);if(f[2]===2?!(num(v)>0):!v.trim())miss.push([f[0],f[1]]);});
   $$('#pform .f.bad').forEach(function(f){f.classList.remove('bad');});
   if(!g('p-accsub').trim()||(/^Other/.test(g('p-accsub'))&&!g('p-accnote').trim()))miss.push(['p-accsub','Exact access site']);
   if(isAdmin&&$('input[name=pn]')&&!$$('input[name=pn]:checked').length)miss.push(['p-nurses','Assigned nurses']);
   if(miss.length){miss=domSort(miss);miss.forEach(function(m){var f=$('[data-f="'+m[0]+'"]');if(f)f.classList.add('bad');});err.innerHTML='Fill in: '+jumpList(miss)+'. Tap an item to go to it.';err.hidden=false;jumpTo(miss[0][0]);return;}
   err.hidden=true;
-  var data={name:g('p-name').trim(),mrn:g('p-mrn').trim(),dryWeight:num(g('p-dry')),age:num(g('p-age')),sex:g('p-sex'),height:num(g('p-height')),diagnosis:g('p-dx').trim(),access:g('p-access'),accessNote:g('p-note').trim(),schedule:g('p-sched').trim(),targetKtv:num(g('p-ktv')),accessSub:g('p-accsub'),accessSubNote:g('p-accnote').trim(),setting:g('p-setting'),ptype:g('p-ptype')||'Standard',ptypeNote:g('p-ptnote').trim()},now=nowISO(),pending;
+  var data={name:g('p-name').trim(),mrn:g('p-mrn').trim(),dryWeight:num(g('p-dry')),age:num(g('p-age')),sex:g('p-sex'),height:num(g('p-height')),diagnosis:g('p-dx').trim(),access:g('p-access'),accessNote:g('p-note').trim(),schedule:g('p-sched').trim(),targetKtv:num(g('p-ktv')),accessSub:g('p-accsub'),accessSubNote:g('p-accnote').trim(),setting:g('p-setting'),ptype:g('p-ptype')||'Standard',ptypeNote:g('p-ptnote').trim(),origin:g('p-origin')||'Regular (maintenance)',originNote:g('p-onote').trim(),startDate:g('p-start')},now=nowISO(),pending;
   if(isAdmin&&$('input[name=pn]'))data.nurses=$$('input[name=pn]:checked').map(function(x){return x.value;});else if(!id)data.nurses=[me.id];
   if(id){
     var cur=patients[id],fields=[];
@@ -2258,30 +2269,32 @@ function loadExample(){
   var DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],dsOf=function(a){return a.sort(function(x,y){return x-y;}).map(function(i){return DN[i];}).join(', ');},w7=function(k){return (t0+k+7)%7;};
   var d=function(k){var x=new Date();x.setDate(x.getDate()+k);return isoDate(x);};
   var P=[
-   {n:'Dela Cruz, Juan (sample)',mrn:'EX-0001',dry:68.5,age:52,sex:'Male',ht:168,dx:'ESKD secondary to chronic glomerulonephritis (sample)',acc:'AV fistula',note:'Left forearm',days:[w7(0),w7(2),w7(4)],ktv:1.4,inprog:true,
+   {n:'Dela Cruz, Juan (sample)',mrn:'EX-0001',ori:'Regular (maintenance)',since:2400,orn:'',dry:68.5,age:52,sex:'Male',ht:168,dx:'ESKD secondary to chronic glomerulonephritis (sample)',acc:'AV fistula',note:'Left forearm',days:[w7(0),w7(2),w7(4)],ktv:1.4,inprog:true,
     cfg:{seed:2026,n:12,today:false,bad:[7],gain:1.5,gainR:0.9,badGain:3.3,dur:240,start:'07:30',sbp:146,dbp:80,hr:70,qb:350,ratio:0.23,shift:'1st',setting:'OPD',machine:'4',dialyzer:'F7',side:'Left',access:'AV fistula',thrill:'Strong thrill and bruit',anti:'Regular heparin',bolus:'2,000 units',hourly:'1,000 units',tx0:40,badNote:'Run ended 30 minutes early.'},
     notes:[{c:'Handover',t:'Left forearm fistula: needle site oozed after the last run. Hold pressure for 10 minutes and check before discharge.',pin:true,last:true},{c:'Education',t:'Reviewed fluid limit and renal diet. Patient verbalized understanding.'}],
     tasks:[{c:'Blood test',t:'Repeat potassium before the next session',due:-1},{c:'Access care',t:'Check the fistula needle site before discharge',due:0}],paper:['member','agree'],ph:true,pty:'Standard'},
-   {n:'Santos, Maria (sample)',mrn:'EX-0002',dry:58.0,age:67,sex:'Female',ht:155,dx:'Diabetic nephropathy, ESKD (sample)',acc:'AV graft',note:'Right upper arm',days:[w7(0),w7(2),w7(4)],ktv:1.4,
+   {n:'Santos, Maria (sample)',mrn:'EX-0002',ori:'Regular (maintenance)',since:1500,orn:'',dry:58.0,age:67,sex:'Female',ht:155,dx:'Diabetic nephropathy, ESKD (sample)',acc:'AV graft',note:'Right upper arm',days:[w7(0),w7(2),w7(4)],ktv:1.4,
     cfg:{seed:11,n:14,today:true,badToday:true,bad:[3,9],gain:2.3,gainR:0.9,badGain:3.1,dur:240,start:'06:30',sbp:140,dbp:76,hr:76,qb:350,ratio:0.28,shift:'1st',setting:'OPD',machine:'7',dialyzer:'F7',side:'Right',access:'AV graft',thrill:'Weak thrill',anti:'Tight heparin',bolus:'1,000 units',hourly:'500 units',tx0:80,sym:['Cramps','Hypotension'],badNote:'Patient is diabetic, monitor glucose.',endorse:'Review dry weight with the doctor. Next HD in 2 days.'},
     notes:[{c:'Concern',t:'Weight gain has been above the limit for several sessions. Doctor to review the dry weight.',pin:true},{c:'Handover',t:'Prone to low BP in the last hour of the run. Check BP every 15 minutes after hour 3.',last:true}],
     tasks:[{c:'Education',t:'Repeat fluid and salt teaching with the daughter present',due:0},{c:'Medication',t:'Ask the doctor about midodrine before dialysis',due:1}],paper:['member'],pty:'High-risk',ptn:'Diabetic with low BP in the last hour. Check BP every 15 minutes.',v2:{soapS:'Feels tired, no chest pain',cannA:[GRADES[1],null,null,null],cannV:[GRADES[0],null,null,null],needle:'15G'}},
-   {n:'Garcia, Roberto (sample)',mrn:'EX-0003',dry:74.0,age:44,sex:'Male',ht:172,dx:'Hypertensive nephrosclerosis, ESKD (sample)',acc:'Tunneled catheter',note:'Right internal jugular',days:[w7(0),w7(2),w7(4)],ktv:1.4,
+   {n:'Garcia, Roberto (sample)',mrn:'EX-0003',ori:'New to dialysis',since:85,orn:'Started on a catheter. Waiting for an AV fistula.',dry:74.0,age:44,sex:'Male',ht:172,dx:'Hypertensive nephrosclerosis, ESKD (sample)',acc:'Tunneled catheter',note:'Right internal jugular',days:[w7(0),w7(2),w7(4)],ktv:1.4,
     cfg:{seed:21,n:10,today:false,bad:[],gain:1.2,gainR:0.8,badGain:2.5,dur:240,start:'07:30',sbp:150,dbp:90,hr:72,qb:300,ratio:0.22,shift:'1st',setting:'OPD',machine:'3',dialyzer:'F8',side:'Right',access:'Tunneled catheter',thrill:'Not applicable',anti:'Regular heparin',bolus:'2,000 units',hourly:'1,000 units',tx0:25,endorse:'Change the catheter dressing next session.'},
     notes:[{c:'Handover',t:'Catheter dressing change due at the next session. Check the exit site for redness.',pin:true,last:true}],
     tasks:[{c:'Access care',t:'Change the catheter dressing and check the exit site',due:0},{c:'Referral',t:'Follow up the vascular surgery referral for an AV fistula',due:5}],paper:['member','agree','order'],v2:{needle:'',cannA:[null,null,null,null],cannV:[null,null,null,null],soapS:'No complaints',lumen:{ain:'Good',aout:'Good',vin:'Good',vout:'Good'}}},
-   {n:'Fernandez, Lourdes (sample)',mrn:'EX-0004',dry:49.5,age:71,sex:'Female',ht:150,dx:'Polycystic kidney disease, ESKD (sample)',acc:'AV fistula',note:'Left upper arm',days:[w7(1),w7(3),w7(5)],ktv:1.4,
+   {n:'Fernandez, Lourdes (sample)',mrn:'EX-0004',ori:'Transferred in',since:1100,orn:'Transferred in from another dialysis center 3 weeks ago.',dry:49.5,age:71,sex:'Female',ht:150,dx:'Polycystic kidney disease, ESKD (sample)',acc:'AV fistula',note:'Left upper arm',days:[w7(1),w7(3),w7(5)],ktv:1.4,
     cfg:{seed:31,n:10,today:false,bad:[],gain:1.0,gainR:0.6,badGain:2.0,dur:210,start:'13:30',sbp:132,dbp:70,hr:68,qb:280,ratio:0.38,shift:'2nd',setting:'OPD',machine:'9',dialyzer:'F6',side:'Left',access:'AV fistula',thrill:'Strong thrill and bruit',anti:'LMWH',bolus:'',hourly:'',tx0:140,symAll:['Itching'],endorse:'Doctor to review the dialysis prescription for low adequacy.'},
     notes:[{c:'Concern',t:'Adequacy has been below target for the last sessions. Ask the doctor to review the prescription and run time.',pin:true,last:true},{c:'Doctor’s order',t:'Use LMWH instead of heparin. Review in two weeks.'}],
     tasks:[{c:'Blood test',t:'Repeat BUN and check the post-dialysis sample timing',due:1},{c:'Medication',t:'Ask about itching treatment',due:3}],paper:['member','agree','order','count']},
-   {n:'Tan, Kevin (sample)',mrn:'EX-0005',dry:62.0,age:29,sex:'Male',ht:176,dx:'Lupus nephritis, ESKD (sample)',acc:'Temporary catheter',note:'Right femoral',days:[w7(-1),w7(1),w7(3)],ktv:1.2,skipY:true,
+   {n:'Tan, Kevin (sample)',mrn:'EX-0005',ori:'New to dialysis',since:12,orn:'Started this admission.',dry:62.0,age:29,sex:'Male',ht:176,dx:'Lupus nephritis, ESKD (sample)',acc:'Temporary catheter',note:'Right femoral',days:[w7(-1),w7(1),w7(3)],ktv:1.2,skipY:true,
     cfg:{seed:41,n:4,today:false,skipYesterday:true,noBUN:true,bad:[],gain:1.6,gainR:0.6,badGain:2.5,dur:180,start:'09:00',sbp:128,dbp:80,hr:84,qb:250,ratio:0.3,shift:'1st',setting:'IPD',machine:'12',dialyzer:'F6',side:'Right',access:'Temporary catheter',thrill:'Not applicable',anti:'NSS flushing',bolus:'',hourly:'',tx0:3,endorse:'Inpatient. Confirm the next session time with the ward.'},
     notes:[{c:'Handover',t:'Inpatient on the medical ward. Heparin-free runs because of low platelets. Confirm transport with the ward.',pin:true,last:true}],
     tasks:[{c:'Blood test',t:'Send BUN before and after the next session',due:-2}],paper:[],v2:{needle:'',cannA:[null,null,null,null],cannV:[null,null,null,null],findEdema:'Present',soapS:'Mild leg swelling, no shortness of breath',lumen:{ain:'Good',aout:'Good',vin:'Good',vout:'Poor'}}}
   ].concat(MOREP(w7));
+  var have={},added=0;Object.keys(rawP).forEach(function(k){have[rawP[k].mrn]=1;});
   P.forEach(function(pt,pi){
+    if(have[pt.mrn])return;added++;
     var pid=newId('p')+pi,sch=dsOf(pt.days.slice());
-    jobs.push(db.doc('patients/'+pid).set(Object.assign({name:pt.n,mrn:pt.mrn,dryWeight:pt.dry,age:pt.age,sex:pt.sex,height:pt.ht,diagnosis:pt.dx,access:pt.acc,accessNote:pt.note,schedule:sch,targetKtv:pt.ktv,status:'active',setting:pt.cfg.setting||'OPD',ptype:pt.pty||'Standard',ptypeNote:pt.ptn||'',accessSub:SAMPSUB[pi],nurses:(function(){var NN=staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;});return NN.length?[NN[pi%NN.length].id]:[];})()},base)));
+    jobs.push(db.doc('patients/'+pid).set(Object.assign({name:pt.n,mrn:pt.mrn,dryWeight:pt.dry,age:pt.age,sex:pt.sex,height:pt.ht,diagnosis:pt.dx,access:pt.acc,accessNote:pt.note,schedule:sch,targetKtv:pt.ktv,status:'active',setting:pt.cfg.setting||'OPD',ptype:pt.pty||'Standard',ptypeNote:pt.ptn||'',origin:pt.ori||'Regular (maintenance)',originNote:pt.orn||'',startDate:d(-(pt.since||0)),accessSub:SAMPSUB[pi],nurses:(function(){var NN=staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;});return NN.length?[NN[pi%NN.length].id]:[];})()},base)));
     var ss=genSessions(Object.assign({days:pt.days,dry:pt.dry},pt.cfg)),n=ss.length,sids=ss.map(function(s,i){return newId('s')+pi+'x'+i;});
     ss.forEach(function(s,i){
       var extra={};
@@ -2301,7 +2314,7 @@ function loadExample(){
     jobs.push(db.doc('paperwork/'+pid).set({items:items,updatedAt:now,updatedBy:me.id,example:true}));
     pt.id=pid;
   });
-  afterWrite(Promise.all(jobs).then(function(){return logEvent('example',P[0].id,null);}).then(function(){toast(P.length+' sample patients added');location.hash='today';})).catch(function(){});
+  afterWrite(Promise.all(jobs).then(function(){return logEvent('example',(P.filter(function(x){return x.id;})[0]||{}).id||null,null);}).then(function(){toast(added+' sample patients added');location.hash='today';})).catch(function(){});
 }
 function removeExamples(){
   var jobs=[];
@@ -2376,35 +2389,52 @@ function syncAuthStaff(){
 }
 
 
+function sampleMissing(){var have={};Object.keys(rawP).forEach(function(k){have[rawP[k].mrn]=1;});for(var i=1;i<=11;i++){if(!have['EX-'+('000'+i).slice(-4)])return true;}return false;}
 /* ---- more sample patients: different types and schedules ---- */
 function MOREP(w7){
   var base={bad:[],gainR:0.7,badGain:2.6,ratio:0.27,dialyzer:'F7',thrill:'Strong thrill and bruit',bolus:'',hourly:''};
   var C=function(o){return Object.assign({},base,o);};
   return [
-   {n:'Reyes, Antonio (sample)',mrn:'EX-0006',dry:70.0,age:58,sex:'Male',ht:170,dx:'Diabetic nephropathy, ESKD. Hepatitis B surface antigen positive (sample)',acc:'AV fistula',note:'Left forearm',days:[w7(0),w7(2),w7(4)],ktv:1.4,inprog:true,pty:'Infectious',ptn:'Hepatitis B positive. Dedicated machine 15 and isolation station. Own supplies.',
+   {n:'Reyes, Antonio (sample)',mrn:'EX-0006',ori:'Regular (maintenance)',since:450,orn:'',dry:70.0,age:58,sex:'Male',ht:170,dx:'Diabetic nephropathy, ESKD. Hepatitis B surface antigen positive (sample)',acc:'AV fistula',note:'Left forearm',days:[w7(0),w7(2),w7(4)],ktv:1.4,inprog:true,pty:'Infectious',ptn:'Hepatitis B positive. Dedicated machine 15 and isolation station. Own supplies.',
     cfg:C({seed:51,n:8,today:false,gain:1.6,dur:240,start:'17:30',sbp:138,dbp:78,hr:72,qb:320,shift:'3rd',setting:'OPD',machine:'15',side:'Left',access:'AV fistula',anti:'Regular heparin',bolus:'2,000 units',hourly:'1,000 units',tx0:60,endorse:'Clean and disinfect machine 15 after use. Next HD in 2 days.'}),
     notes:[{c:'Handover',t:'HBsAg positive. Use the dedicated machine and the isolation station. Wear a gown and gloves, and discard waste in the infectious bin.',pin:true,last:true}],
     tasks:[{c:'Blood test',t:'Repeat hepatitis B surface antibody and liver tests this month',due:4}],paper:['member','agree']},
-   {n:'Villanueva, Carmen (sample)',mrn:'EX-0007',dry:55.0,age:63,sex:'Female',ht:157,dx:'Hypertensive nephrosclerosis, ESKD. Hepatitis C positive (sample)',acc:'AV graft',note:'Right forearm loop',days:[w7(1),w7(3),w7(5)],ktv:1.4,pty:'Infectious',ptn:'Hepatitis C positive. Standard precautions. Use machine 11 and clean it after use.',
+   {n:'Villanueva, Carmen (sample)',mrn:'EX-0007',ori:'Transferred in',since:900,orn:'Transferred in from a provincial hospital 3 weeks ago. Records received.',dry:55.0,age:63,sex:'Female',ht:157,dx:'Hypertensive nephrosclerosis, ESKD. Hepatitis C positive (sample)',acc:'AV graft',note:'Right forearm loop',days:[w7(1),w7(3),w7(5)],ktv:1.4,pty:'Infectious',ptn:'Hepatitis C positive. Standard precautions. Use machine 11 and clean it after use.',
     cfg:C({seed:61,n:8,today:false,gain:1.8,dur:240,start:'13:30',sbp:144,dbp:82,hr:74,qb:330,shift:'2nd',setting:'OPD',machine:'11',side:'Right',access:'AV graft',thrill:'Weak thrill',anti:'Low-dose heparin',bolus:'1,000 units',hourly:'500 units',tx0:95,endorse:'Next HD in 2 days. Check the graft thrill.'}),
     notes:[{c:'Handover',t:'Hepatitis C positive. Use machine 11 and clean it after use. Standard precautions for all staff.',pin:true,last:true}],
     tasks:[{c:'Referral',t:'Follow up the hepatology referral for antiviral treatment',due:6}],paper:['member','agree','order']},
-   {n:'Mendoza, Ricardo (sample)',mrn:'EX-0008',dry:66.0,age:47,sex:'Male',ht:169,dx:'Acute kidney injury on chronic kidney disease with uremic encephalopathy (sample)',acc:'Temporary catheter',note:'Right femoral',days:[w7(-2),w7(-1),w7(0)],ktv:1.2,inprog:true,pty:'Toxic',ptn:'Uremic toxicity: confusion and vomiting. Short, slow runs to prevent disequilibrium syndrome.',
+   {n:'Mendoza, Ricardo (sample)',mrn:'EX-0008',ori:'New to dialysis',since:2,orn:'Emergency start this admission.',dry:66.0,age:47,sex:'Male',ht:169,dx:'Acute kidney injury on chronic kidney disease with uremic encephalopathy (sample)',acc:'Temporary catheter',note:'Right femoral',days:[w7(-2),w7(-1),w7(0)],ktv:1.2,inprog:true,pty:'Toxic',ptn:'Uremic toxicity: confusion and vomiting. Short, slow runs to prevent disequilibrium syndrome.',
     cfg:C({seed:71,n:2,today:false,gain:2.6,gainR:0.4,dur:120,start:'08:00',sbp:158,dbp:96,hr:92,qb:200,ratio:0.4,shift:'1st',setting:'IPD',machine:'5',dialyzer:'F6',side:'Right',access:'Temporary catheter',thrill:'Not applicable',anti:'NSS flushing',tx0:1,symAll:['Nausea','Headache'],endorse:'Admitted on the medical ward. Doctor to decide the next run.'}),
     notes:[{c:'Concern',t:'Very high urea on admission with confusion. Keep blood flow low and runs short for the first treatments. Watch for headache, vomiting and seizures.',pin:true,last:true}],
     tasks:[{c:'Blood test',t:'Send BUN and creatinine before and after the run',due:0},{c:'Assessment',t:'Check the level of consciousness every 30 minutes during the run',due:0}],paper:['member'],v2:{soapS:'Nausea and headache, confused to time',findEdema:'Present'}},
-   {n:'Aquino, Gloria (sample)',mrn:'EX-0009',dry:60.0,age:36,sex:'Female',ht:160,dx:'Lithium toxicity (overdose), urgent hemodialysis (sample)',acc:'Temporary catheter',note:'Left internal jugular',days:[w7(0)],ktv:1.2,pty:'Toxic',ptn:'Poisoning: lithium. Single urgent run. Repeat the level after 6 hours (rebound).',
+   {n:'Aquino, Gloria (sample)',mrn:'EX-0009',ori:'One-time (urgent)',since:0,orn:'Single urgent run for poisoning.',dry:60.0,age:36,sex:'Female',ht:160,dx:'Lithium toxicity (overdose), urgent hemodialysis (sample)',acc:'Temporary catheter',note:'Left internal jugular',days:[w7(0)],ktv:1.2,pty:'Toxic',ptn:'Poisoning: lithium. Single urgent run. Repeat the level after 6 hours (rebound).',
     cfg:C({seed:81,n:1,today:true,gain:0.4,gainR:0.2,dur:240,start:'10:00',sbp:122,dbp:74,hr:96,qb:300,ratio:0.3,shift:'1st',setting:'IPD',machine:'2',dialyzer:'F8',side:'Left',access:'Temporary catheter',thrill:'Not applicable',anti:'NSS flushing',tx0:1,endorse:'Repeat lithium level after 6 hours. Doctor may order another run if it rebounds.'}),
     notes:[{c:'Concern',t:'Lithium overdose. Watch for tremor, confusion and a fast or irregular heartbeat. Ward to repeat the level and review for another run.',pin:true,last:true}],
     tasks:[{c:'Blood test',t:'Lithium level 6 hours after the run',due:0}],paper:[]},
-   {n:'Bautista, Elena (sample)',mrn:'EX-0010',dry:52.0,age:69,sex:'Female',ht:152,dx:'Diabetic nephropathy, ESKD. Catheter-related MRSA infection (sample)',acc:'Tunneled catheter',note:'Right subclavian, exit-site infection',days:[w7(1),w7(3),w7(5)],ktv:1.4,pty:'Infectious',ptn:'MRSA. Contact precautions. Catheter exit site infected, on antibiotics.',
+   {n:'Bautista, Elena (sample)',mrn:'EX-0010',ori:'Returning after hospital stay',since:600,orn:'Back after a 2-week admission for infection.',dry:52.0,age:69,sex:'Female',ht:152,dx:'Diabetic nephropathy, ESKD. Catheter-related MRSA infection (sample)',acc:'Tunneled catheter',note:'Right subclavian, exit-site infection',days:[w7(1),w7(3),w7(5)],ktv:1.4,pty:'Infectious',ptn:'MRSA. Contact precautions. Catheter exit site infected, on antibiotics.',
     cfg:C({seed:91,n:6,today:false,gain:1.5,dur:240,start:'09:00',sbp:130,dbp:70,hr:84,qb:280,shift:'1st',setting:'IPD',machine:'8',dialyzer:'F6',side:'Right',access:'Tunneled catheter',thrill:'Not applicable',anti:'None',tx0:30,symAll:['Chills'],endorse:'Contact precautions. Doctor to review the catheter. Antibiotic after dialysis.'}),
     notes:[{c:'Handover',t:'MRSA. Gown and gloves for all contact, and clean the machine and chair after use. Check the temperature before and during the run.',pin:true,last:true}],
     tasks:[{c:'Medication',t:'Give the antibiotic after dialysis as ordered',due:1},{c:'Access care',t:'Check and dress the exit site. Note any pus.',due:1}],paper:['member','agree'],v2:{needle:'',cannA:[null,null,null,null],cannV:[null,null,null,null],lumen:{ain:'Good',aout:'Poor',vin:'Good',vout:'Good'}}},
-   {n:'Lim, Dennis (sample)',mrn:'EX-0011',dry:80.0,age:74,sex:'Male',ht:171,dx:'Cardiorenal syndrome, heart failure, ESKD (sample)',acc:'AV fistula',note:'Left upper arm',days:[w7(2),w7(5)],ktv:1.3,pty:'High-risk',ptn:'Heart failure. Fluid gain limit 2 kg. Watch for breathlessness and low BP.',
+   {n:'Lim, Dennis (sample)',mrn:'EX-0011',ori:'Regular (maintenance)',since:800,orn:'',dry:80.0,age:74,sex:'Male',ht:171,dx:'Cardiorenal syndrome, heart failure, ESKD (sample)',acc:'AV fistula',note:'Left upper arm',days:[w7(2),w7(5)],ktv:1.3,pty:'High-risk',ptn:'Heart failure. Fluid gain limit 2 kg. Watch for breathlessness and low BP.',
     cfg:C({seed:101,n:7,today:false,gain:1.9,gainR:0.9,badGain:3.4,bad:[4],dur:210,start:'13:30',sbp:112,dbp:64,hr:78,qb:260,shift:'2nd',setting:'OPD',machine:'6',dialyzer:'F7',side:'Left',access:'AV fistula',anti:'LMWH',tx0:70,sym:['Shortness of breath','Hypotension'],endorse:'Twice-weekly schedule. Doctor to review fluid gain.'}),
     notes:[{c:'Concern',t:'Heart failure. Weight gain above 2 kg between sessions raises the risk of breathlessness. Check the lungs and BP often.',pin:true,last:true}],
-    tasks:[{c:'Education',t:'Review the fluid and salt limits with the family',due:2}],paper:['member','agree','order','count'],v2:{spo2:93,o2Type:'Nasal cannula',o2Sub:'2 L/min',o2Note:'Home oxygen at night. Kept on during the run.'}}
+    tasks:[{c:'Education',t:'Review the fluid and salt limits with the family',due:2}],paper:['member','agree','order','count'],v2:{spo2:93,o2Type:'Nasal cannula',o2Sub:'2 L/min',o2Note:'Home oxygen at night. Kept on during the run.'}},
+   {n:'Cruz, Teresita (sample)',mrn:'EX-0012',dry:57.0,age:61,sex:'Female',ht:154,dx:'Diabetic nephropathy, ESKD. Visiting from Cebu (sample)',acc:'AV fistula',note:'Left forearm',days:[w7(1),w7(4)],ktv:1.4,ori:'Transient (visiting)',since:1300,orn:'Home unit: Cebu. Visiting for 3 weeks. Records faxed by the home unit.',pty:'Standard',
+    cfg:C({seed:111,n:2,today:false,gain:1.7,dur:240,start:'13:30',sbp:136,dbp:76,hr:72,qb:300,shift:'2nd',setting:'OPD',machine:'10',side:'Left',access:'AV fistula',anti:'Regular heparin',bolus:'2,000 units',hourly:'1,000 units',tx0:1,endorse:'Visiting patient. Send the run summary to the home unit.'}),
+    notes:[{c:'Handover',t:'Visiting from Cebu for 3 weeks. Confirm the prescription with her home nephrologist. Send a run summary after each session.',pin:true,last:true}],
+    tasks:[{c:'Referral',t:'Fax the session summary to the home unit',due:1}],paper:['member']},
+   {n:'Ramos, Jose (sample)',mrn:'EX-0013',dry:76.0,age:55,sex:'Male',ht:173,dx:'Chronic glomerulonephritis, ESKD. Transferring to another center (sample)',acc:'AV graft',note:'Right upper arm',days:[w7(0),w7(2),w7(4)],ktv:1.4,ori:'Transferred out',since:1700,orn:'Transferring to a center near his new home next week. Last session here in 5 days.',pty:'Standard',
+    cfg:C({seed:121,n:9,today:false,gain:1.6,dur:240,start:'06:30',sbp:140,dbp:80,hr:70,qb:340,shift:'1st',setting:'OPD',machine:'1',side:'Right',access:'AV graft',thrill:'Strong thrill and bruit',anti:'Regular heparin',bolus:'2,000 units',hourly:'1,000 units',tx0:210,endorse:'Prepare the transfer summary and copies of the last 3 months of records.'}),
+    notes:[{c:'Handover',t:'Transferring to another center. Prepare the transfer summary, the latest labs, the hepatitis status and the dialysis prescription.',pin:true,last:true}],
+    tasks:[{c:'Paperwork',t:'Prepare the transfer summary and records',due:2}],paper:['member','agree','order','count']},
+   {n:'Dizon, Rosalinda (sample)',mrn:'EX-0014',dry:51.0,age:66,sex:'Female',ht:151,dx:'Diabetic nephropathy, ESKD. COVID-19 positive (sample)',acc:'Tunneled catheter',note:'Right internal jugular',days:[w7(0),w7(3),w7(5)],ktv:1.4,ori:'Regular (maintenance)',since:520,orn:'',pty:'Infectious',ptn:'COVID-19 positive. Airborne and contact precautions. Isolation room, last shift of the day.',
+    cfg:C({seed:131,n:6,today:false,gain:1.4,dur:240,start:'17:30',sbp:128,dbp:70,hr:82,qb:280,shift:'3rd',setting:'IPD',machine:'14',dialyzer:'F6',side:'Right',access:'Tunneled catheter',thrill:'Not applicable',anti:'NSS flushing',tx0:75,symAll:['Cough'],endorse:'Isolation room. Full protective equipment. Clean the room and machine after use.'}),
+    notes:[{c:'Handover',t:'COVID-19 positive. Isolation room, N95 and full protective equipment. Do the run last and clean the room and machine afterwards.',pin:true,last:true}],
+    tasks:[{c:'Assessment',t:'Check the temperature and oxygen saturation before and during the run',due:0}],paper:['member','agree'],v2:{spo2:94,o2Type:'Nasal cannula',o2Sub:'2 L/min',o2Note:'Needs oxygen while on isolation.'}},
+   {n:'Ocampo, Miguel (sample)',mrn:'EX-0015',dry:72.0,age:50,sex:'Male',ht:168,dx:'Metformin-associated lactic acidosis with acute kidney injury (sample)',acc:'Temporary catheter',note:'Left femoral',days:[w7(-1),w7(0)],ktv:1.2,ori:'New to dialysis',since:1,orn:'Emergency start for toxic acidosis.',pty:'Toxic',ptn:'Metformin-associated lactic acidosis. Urgent runs. Check the blood gas before and after.',inprog:true,
+    cfg:C({seed:141,n:1,today:false,gain:1.0,gainR:0.3,dur:240,start:'09:00',sbp:104,dbp:60,hr:104,qb:300,ratio:0.3,shift:'1st',setting:'IPD',machine:'3',dialyzer:'F8',side:'Left',access:'Temporary catheter',thrill:'Not applicable',anti:'NSS flushing',tx0:1,symAll:['Nausea'],endorse:'Repeat the blood gas and lactate. Doctor to decide if another run is needed.'}),
+    notes:[{c:'Concern',t:'Severe acidosis on admission. Check the blood gas and lactate before and after each run. Watch the blood pressure and breathing closely.',pin:true,last:true}],
+    tasks:[{c:'Blood test',t:'Blood gas and lactate after the run',due:0}],paper:[],v2:{spo2:95,soapS:'Weak, nausea, breathing fast'}}
   ];
 }
 
@@ -2815,6 +2845,11 @@ function todayBanner(rows){
 var schedNurse='';
 function setOf(p){if(p.setting)return p.setting;var ps=pSessions(p.id||'-');for(var i=ps.length-1;i>=0;i--)if(ps[i].setting)return ps[i].setting;return '';}
 var PTYPES=['Standard','Infectious','Toxic','High-risk'],SAMPSUB=['Radiocephalic (wrist)','Upper-arm straight','Right internal jugular','Brachiocephalic (elbow)','Right femoral','Radiocephalic (wrist)','Forearm loop','Right femoral','Left internal jugular','Right subclavian','Brachiocephalic (elbow)'];
+var ORIGINS=['Regular (maintenance)','New to dialysis','Transferred in','Transferred out','Transient (visiting)','Returning after hospital stay','One-time (urgent)'];
+function orOf(p){return (p&&p.origin)||'Regular (maintenance)';}
+function fmtY(iso){try{var q=iso.split('-').map(Number);return new Date(q[0],q[1]-1,q[2]).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return iso||'';}}
+function sinceTxt(p){return p&&p.startDate?'On HD since '+fmtY(p.startDate):'';}
+function origPill(p){var v=orOf(p);if(v==='Regular (maintenance)')return '';var c=/^Transferred/.test(v)?'tr':(/^New|One-time/.test(v)?'nw':'vs');return '<span class="stp og-'+c+'" title="Patient status: '+esc(v)+'">'+esc(v)+'</span>';}
 function ptOf(p){return (p&&p.ptype)||'Standard';}
 function typePill(p){var v=ptOf(p),c={Standard:'std',Infectious:'inf',Toxic:'tox','High-risk':'risk'}[v]||'std';return '<span class="stp pt-'+c+'" title="Patient type: '+esc(v)+'">'+(v==='Infectious'?'\u26A0 ':(v==='Toxic'||v==='High-risk'?'! ':''))+esc(v)+'</span>';}
 function setPill(p,short){var v=setOf(p);return v?'<span class="stp '+(v==='IPD'?'ipd':'opd')+'">'+(short?v:(v==='IPD'?'Inpatient · IPD':'Outpatient · OPD'))+'</span>':'';}
@@ -2835,7 +2870,7 @@ function scheduleHTML(){
   h+='<div class="sched">'+days.map(function(x){
     var cls='sday'+(x.i===0?' now':'')+((x.dow===0||x.dow===6)?' wk':'')+(x.ps.length?'':' none');
     return '<div class="'+cls+'"><div class="dh"><b>'+DN[x.dow]+'</b> '+x.d.getDate()+' '+x.d.toLocaleDateString('en-GB',{month:'short'})+(x.i===0?' <span class="tdy">Today</span>':'')+'<span class="n">'+x.ps.length+'</span></div>'
-     +(x.ps.length?x.ps.map(function(p){return '<a class="si" href="#p-'+p.id+'"><span class="sn">'+esc((p.name||'Unnamed').replace(/\s*\(sample\)\s*$/i,''))+'</span>'+setPill(p,true)+typePill(p)+(isAdmin&&nurseNames(p)?'<span class="sub">'+esc(nurseNames(p))+'</span>':'')+'</a>';}).join(''):'<span class="sub">No sessions</span>')+'</div>';
+     +(x.ps.length?x.ps.map(function(p){return '<a class="si" href="#p-'+p.id+'"><span class="sn">'+esc((p.name||'Unnamed').replace(/\s*\(sample\)\s*$/i,''))+'</span>'+setPill(p,true)+typePill(p)+origPill(p)+(isAdmin&&nurseNames(p)?'<span class="sub">'+esc(nurseNames(p))+'</span>':'')+'</a>';}).join(''):'<span class="sub">No sessions</span>')+'</div>';
   }).join('')+'</div>';
   return h;
 }
