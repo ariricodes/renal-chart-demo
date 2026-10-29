@@ -479,6 +479,16 @@ tr.off td{opacity:.55}
 @media (max-width:1000px){.sched{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.sched{grid-template-columns:minmax(0,1fr)}}
 
+.stp.pt-std{background:transparent;color:var(--muted,#5B7076);border:1px solid var(--line,#D5E0E3)}
+.stp.pt-inf{background:#FFE4E0;color:#8A1F11}
+.stp.pt-tox{background:#EADCF7;color:#4D1F7A}
+.stp.pt-risk{background:#FFEFCC;color:#7A4A00}
+:root[data-theme="dark"] .stp.pt-inf{background:#4A1F1A;color:#FFC9C0}
+:root[data-theme="dark"] .stp.pt-tox{background:#3A2656;color:#E3D0FF}
+:root[data-theme="dark"] .stp.pt-risk{background:#4A3510;color:#FFE0A0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stp.pt-inf{background:#4A1F1A;color:#FFC9C0}:root:not([data-theme="light"]) .stp.pt-tox{background:#3A2656;color:#E3D0FF}:root:not([data-theme="light"]) .stp.pt-risk{background:#4A3510;color:#FFE0A0}}
+.plist .sp .stp{margin-right:4px}
+
 </style>
 </head><body>
 
@@ -698,6 +708,14 @@ var meP=null,caps={
       if(String(pw||'').length<8)return Promise.reject(new Error('Use at least 8 characters.'));
       a.salt=rid()+rid();a.hash=hashPw(pw,a.salt);return saveAcc();
     },
+    rename:function(id,o){
+      if(!cur||(cur.role!=='admin'&&cur.id!==id))return Promise.reject(new Error('Not allowed.'));var a=byId(id);if(!a)return Promise.reject(new Error('No such account.'));
+      if(o&&typeof o.name==='string'&&o.name.trim().length>=2)a.name=o.name.trim();
+      if(o&&typeof o.license==='string')a.license=o.license.trim();
+      profiles[a.id]={id:a.id,name:a.name};
+      if(cur.id===a.id){cur.name=a.name;if(meP)meP.then(function(m){m.name=a.name;});var pl=document.querySelector('#demo-bar .dpill');if(pl)pl.textContent=cur.name+' · '+(cur.role==='admin'?'Admin':'Nurse');}
+      return saveAcc().then(function(){return tx('meta','readwrite',function(st){return st.put(profiles,'profiles');});}).then(function(){return pub(a);});
+    },
     setActive:function(id,on){
       if(!cur||cur.role!=='admin')return Promise.reject(new Error('Admins only.'));var a=byId(id);if(!a)return Promise.reject(new Error('No such account.'));
       if(a.id===cur.id)return Promise.reject(new Error('You cannot turn off your own account.'));a.active=!!on;return saveAcc();
@@ -725,7 +743,7 @@ var THRILL=['Strong thrill and bruit','Weak thrill','Absent thrill with bruit','
 var ANTI=['None','NSS flushing','LMWH','Regular heparin','Low-dose heparin','Tight heparin'];
 var PRIMES=['Half prime','Full prime'],SEXES=['Male','Female'];
 var READ=[['t','Min','n'],['sbp','SBP','n'],['dbp','DBP','n'],['hr','Pulse','n'],['bfr','BFR','n'],['dfr','DFR','n'],['ap','AP','n'],['vp','VP','n'],['tmp','TMP','n'],['ufv','UFV (L)','n'],['hep','Hep','n'],['ebf','EBF','n'],['cond','Cond','n'],['note','Comment','t']];
-var LABELS={accessSub:'access site',anticoagSub:'anticoagulant detail',anticoagNote:'anticoagulant note',witness:'patient or watcher signature',steps:'nurses per step',date:'date',startTime:'start time',durationMin:'run length',treatmentNo:'treatment no.',machineNo:'machine',shift:'shift',setting:'OPD or IPD',dialyzer:'dialyzer',dialyzerSerial:'dialyzer serial',nurse:'nurse',preWt:'pre-weight',postWt:'post-weight',ufGoal:'target UF',ufActual:'actual UF',accessSide:'access side',accessType:'access type',thrill:'thrill check',qb:'blood flow',qd:'dialysate flow',prime:'prime',anticoagType:'anticoagulant',hepBolus:'bolus',hepHourly:'heparin per hour',preBUN:'pre BUN',postBUN:'post BUN',preSBP:'pre BP',preDBP:'pre BP',preHR:'pre pulse',preTemp:'pre temperature',preRR:'pre respiration',spo2:'O2 sat',postSBP:'post BP',postDBP:'post BP',postHR:'post pulse',postTemp:'post temperature',postRR:'post respiration',notes:'notes',doctorOrder:"doctor's order",endorsement:'endorsement',reuseCount:'dialyzer uses',peraTest:'perassay test',residTest:'residual peracetic test',needle:'needle gauge',cannA:'arterial attempts',cannV:'venous attempts',accessInfect:'access infection check',findSOB:'shortness of breath',findEdema:'edema',findBleed:'bleeding',soapS:'subjective',soapLoc:'consciousness',soapResp:'respiratory status',soapA:'assessment',soapE:'evaluation',endType:'how the run ended',endReason:'reason ended early',actualMin:'actual run time',teaching:'health teaching',postLoc:'consciousness after',symptoms:'findings',vitals:'flowsheet readings',photos:'photos'};
+var LABELS={o2Type:'oxygen type',o2Sub:'oxygen setting',o2Note:'oxygen note',accessSub:'access site',anticoagSub:'anticoagulant detail',anticoagNote:'anticoagulant note',witness:'patient or watcher signature',steps:'nurses per step',date:'date',startTime:'start time',durationMin:'run length',treatmentNo:'treatment no.',machineNo:'machine',shift:'shift',setting:'OPD or IPD',dialyzer:'dialyzer',dialyzerSerial:'dialyzer serial',nurse:'nurse',preWt:'pre-weight',postWt:'post-weight',ufGoal:'target UF',ufActual:'actual UF',accessSide:'access side',accessType:'access type',thrill:'thrill check',qb:'blood flow',qd:'dialysate flow',prime:'prime',anticoagType:'anticoagulant',hepBolus:'bolus',hepHourly:'heparin per hour',preBUN:'pre BUN',postBUN:'post BUN',preSBP:'pre BP',preDBP:'pre BP',preHR:'pre pulse',preTemp:'pre temperature',preRR:'pre respiration',spo2:'O2 sat',postSBP:'post BP',postDBP:'post BP',postHR:'post pulse',postTemp:'post temperature',postRR:'post respiration',notes:'notes',doctorOrder:"doctor's order",endorsement:'endorsement',reuseCount:'dialyzer uses',peraTest:'perassay test',residTest:'residual peracetic test',needle:'needle gauge',cannA:'arterial attempts',cannV:'venous attempts',accessInfect:'access infection check',findSOB:'shortness of breath',findEdema:'edema',findBleed:'bleeding',soapS:'subjective',soapLoc:'consciousness',soapResp:'respiratory status',soapA:'assessment',soapE:'evaluation',endType:'how the run ended',endReason:'reason ended early',actualMin:'actual run time',teaching:'health teaching',postLoc:'consciousness after',symptoms:'findings',vitals:'flowsheet readings',photos:'photos'};
 var EVT={view:'Opened',create:'Created session',edit:'Edited session',void:'Voided session',restore:'Restored session',photo:'Added photo','patient-create':'Added patient','patient-edit':'Edited patient',archive:'Archived patient',unarchive:'Restored patient',example:'Loaded example data',settings:'Changed settings','ph-save':'Saved PhilHealth agreement','paper-tick':'Ticked paperwork step','paper-untick':'Unticked paperwork step','task-add':'Added to-do','task-done':'Completed to-do','task-reopen':'Reopened to-do','task-remove':'Removed to-do','note-add':'Added note','note-edit':'Edited note','note-remove':'Removed note'};
 
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
@@ -764,6 +782,9 @@ function calc(s,prev,p){
     else if(p&&p.targetKtv>0&&o.ktv<p.targetKtv)o.flags.push({level:'warn',text:'Kt/V '+fmt(o.ktv,2)+' below target'});
   }
   if(o.urr!=null&&o.urr<TH.urr)o.flags.push({level:'warn',text:'URR '+fmt(o.urr,0)+'% (minimum '+TH.urr+'%)'});
+  if(s.spo2!=null&&s.spo2<90)o.flags.push({level:'crit',text:'Oxygen saturation '+s.spo2+'% (below 90%)'+(s.o2Type?' on '+s.o2Type.toLowerCase():'')});
+  else if(s.spo2!=null&&s.spo2<92)o.flags.push({level:'warn',text:'Oxygen saturation '+s.spo2+'% (below 92%)'+(s.o2Type?' on '+s.o2Type.toLowerCase():'')});
+  if(s.o2Type&&s.o2Type!=='Room air')o.flags.push({level:'warn',text:'On supplemental oxygen: '+s.o2Type+(s.o2Sub?', '+s.o2Sub:'')});
   if((s.symptoms||[]).length)o.flags.push({level:'warn',text:s.symptoms.join(', ')});
   if(s.preBUN>0&&s.postBUN!=null&&s.postBUN>=s.preBUN)o.flags.push({level:'warn',text:'Check entry: post BUN is not lower than pre BUN, so Kt/V and URR are not calculated'});
   if(s.preWt!=null&&s.postWt!=null&&s.postWt>s.preWt)o.flags.push({level:'warn',text:'Check entry: post-weight is higher than pre-weight'});
@@ -818,7 +839,7 @@ var charts={},observers=[],lastKey='',renderT=null,staleForm=false;
 var activity={loading:false,loaded:0,users:[],events:[],error:''};
 var actFilter={who:'',type:''};
 var PERA=['Negative (−)','Positive (+)','Not done'],GRADES=['0 – No difficulty','1 – Poor flashback','2 – Poor flashback, unable to advance needle','3 – Poor back flow','4 – Clotted needle','5 – Infiltration'],NEEDLES=['14G','15G','16G','17G'],NP=['None','Present'],LOCS=['Conscious','Confused','Lethargic','Obtunded','Stuporous','Comatose'],RESPS=['Normal (RR 12 to 16)','Mild stress (RR 16 to 20)','Moderate distress','Severe (RR above 20 or below 6 to 8)'],ENDS=['Completed','Terminated early'],LUM=['Good','Poor','None'];
-var NEWK=['accessSub','accessNote','anticoagSub','anticoagNote','witness','steps','reuseCount','dialyzerFirstUse','peraTest','residTest','disinfectedBy','needle','cannA','cannV','accessInfect','lumen','findSOB','findEdema','findBleed','soapS','soapLoc','soapResp','soapCardio','soapSkin','soapGI','soapIVF','soapOther','soapA','soapIntra','postLoc','postObs','teaching','soapE','endType','endReason','actualMin'];
+var NEWK=['o2Type','o2Sub','o2Note','accessSub','accessNote','anticoagSub','anticoagNote','witness','steps','reuseCount','dialyzerFirstUse','peraTest','residTest','disinfectedBy','needle','cannA','cannV','accessInfect','lumen','findSOB','findEdema','findBleed','soapS','soapLoc','soapResp','soapCardio','soapSkin','soapGI','soapIVF','soapOther','soapA','soapIntra','postLoc','postObs','teaching','soapE','endType','endReason','actualMin'];
 var PHCFG={limit:null,items:null,meta:null},phRows=4;
 var DEFPH=[['Drugs and medicines','Epoetin alpha 2000 IU/0.5 mL pre-filled syringe'],['Drugs and medicines','Epoetin alpha 4000 IU/0.4 mL pre-filled syringe'],['Drugs and medicines','Epoetin alpha 4000 IU/mL, 1 mL vial'],['Drugs and medicines','Epoetin alpha 4000 IU/mL solution in 1 mL pre-filled syringe'],['Drugs and medicines','Epoetin alpha 10,000 IU/mL pre-filled syringe'],['Drugs and medicines','Epoetin beta 2000 IU/0.3 mL pre-filled syringe'],['Drugs and medicines','Epoetin beta 5000 IU/0.3 mL pre-filled syringe'],['Drugs and medicines','Epoetin beta 10,000 IU/0.6 mL pre-filled syringe'],['Drugs and medicines','Iron sucrose 20 mg/mL, 5 mL ampule'],['Drugs and medicines','Heparin sodium 1000 IU/mL, 5 mL vial'],['Drugs and medicines','Heparin sodium 5000 IU/mL, 5 mL vial'],['Drugs and medicines','Heparin sodium 1000 IU/mL, 30 mL vial'],['Laboratory tests','Complete blood count'],['Laboratory tests','Serum creatinine'],['Laboratory tests','BUN'],['Laboratory tests','Hepatitis profile'],['Laboratory tests','Alkaline phosphatase'],['Laboratory tests','Potassium'],['Laboratory tests','Phosphorus'],['Laboratory tests','Calcium'],['Laboratory tests','Sodium'],['Laboratory tests','Serum iron, ferritin, transferrin, total iron binding capacity'],['Laboratory tests','Albumin'],['Supplies','Dialyzer, low-flux'],['Supplies','Dialyzer, high-flux'],['Supplies','Hemodialysis solutions'],['Supplies','Dialysis kit'],['Administrative and other fees','Use of dialysis machine'],['Administrative and other fees','Dialysis nursing procedure'],['Administrative and other fees','Use of dialysis chair']];
 var V2=function(f){return function(s){return !s.needPre||f(s);};},isAV=function(s){return s.accessType==='AV fistula'||s.accessType==='AV graft';};
@@ -855,7 +876,7 @@ function need(id){
 function cmpS(a,b){var ka=a.date+' '+(a.startTime||'00:00'),kb=b.date+' '+(b.startTime||'00:00');if(ka!==kb)return ka<kb?-1:1;return(a.createdAt||'')<(b.createdAt||'')?-1:1;}
 function allS(){return Object.keys(sessions).map(function(k){return sessions[k];});}
 function pSessions(pid,incVoid){return allS().filter(function(s){return s.patientId===pid&&(incVoid||s.status!=='void');}).sort(cmpS);}
-function rowsFor(pid){var a=pSessions(pid),p=patients[pid]||{};return a.map(function(s,i){return {s:s,c:calc(s,a[i-1],p)};});}
+function rowsFor(pid){var a=pSessions(pid),p=patients[pid]||{};return a.map(function(s,i){return {s:s,c:calc(s,prevDone(a,i),p)};});}
 function plist(){
   var t=q.trim().toLowerCase();
   return Object.keys(patients).map(function(k){return patients[k];}).filter(function(p){
@@ -1157,7 +1178,7 @@ function todayLine0(){
   var t=todayISO(),a=allS().filter(function(s){return s.date===t&&s.status!=='void';});
   if(!a.length)return 'No sessions logged today.';
   var ip=a.filter(function(s){return s.status==='in-progress';}).length;
-  var fl=a.filter(function(s){var p=patients[s.patientId]||{};var ps=pSessions(s.patientId);var i=ps.indexOf(s);return calc(s,ps[i-1],p).flags.length>0;}).length;
+  var fl=a.filter(function(s){var p=patients[s.patientId]||{};var ps=pSessions(s.patientId);var i=ps.indexOf(s);return calc(s,prevDone(ps,i),p).flags.length>0;}).length;
   return 'Today: '+a.length+(a.length===1?' session':' sessions')+(ip?' · '+ip+' in progress':'')+(fl?' · '+fl+' with flags':'');
 }
 function todayLine(){var b=todayLine0(),n=Object.keys(tasks).filter(function(k){return tasks[k].status==='open';}).length;return b+(n?' · '+n+' to do':'');}
@@ -1173,7 +1194,7 @@ function railHTML(r){
   list.forEach(function(p){
     var rows=rowsFor(p.id),last=rows[rows.length-1],ip=pSessions(p.id).some(function(s){return s.status==='in-progress';});
     var pill=ip?'<span class="pill warn">In progress</span>':(p.status==='archived'?'<span class="pill mute">Archived</span>':(last&&last.c.flags.length?'<span class="pill '+(last.c.flags.some(function(f){return f.level==='crit';})?'crit':'warn')+'">'+last.c.flags.length+(last.c.flags.length===1?' flag':' flags')+'</span>':''));
-    h+='<li><a class="prow'+((r.pid===p.id)?' on':'')+'" href="#p-'+p.id+'"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><span class="nm">'+esc(p.name||'Unnamed')+'</span><span class="sp">'+spark(rows.slice(-8).map(function(x){return x.s.preWt;}),p.dryWeight,84,24)+pill+'</span><span class="mt">'+esc([p.mrn,p.schedule].filter(Boolean).join(' · ')||' ')+'</span></a></li>';
+    h+='<li><a class="prow'+((r.pid===p.id)?' on':'')+'" href="#p-'+p.id+'"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><span class="nm">'+esc(p.name||'Unnamed')+'</span><span class="sp">'+typePill(p)+''+spark(rows.slice(-8).map(function(x){return x.s.preWt;}),p.dryWeight,84,24)+pill+'</span><span class="mt">'+esc([p.mrn,p.schedule].filter(Boolean).join(' · ')||' ')+'</span></a></li>';
   });
   h+='</ul>';
   if(!list.length)h+='<p class="sub" style="margin-top:12px">No patients match "'+esc(q)+'".</p>';
@@ -1288,6 +1309,7 @@ function INFOT(k){var T={
  dur:'How long blood was actually running through the machine, in minutes.',
  tx:'The running count of this patient’s dialysis treatments.',
  shift:'Which shift of the day the session was in.',
+ ptype:'Standard is a usual dialysis patient. Infectious needs isolation precautions (for example hepatitis B or C, MRSA). Toxic means a poisoning or a severe build-up of toxins that needs urgent, close watching. High-risk means a patient who needs extra monitoring, such as heart failure or very low blood pressure.',
  setting:'OPD means outpatient. IPD means the patient is admitted in the hospital.',
  dialyzer:'The filter (artificial kidney) used for this session.',
  bfr:'Blood flow rate: how fast the pump moves the patient’s blood through the circuit, in mL per minute.',
@@ -1356,6 +1378,8 @@ var REQS=[
  ['f-edema','Edema',V2(function(s){return has(s.findEdema);}),0],
  ['f-bleed','Signs of bleeding',V2(function(s){return has(s.findBleed);}),0],
  ['f-spo2','Oxygen saturation',V2(function(s){return s.spo2!=null;}),0],
+ ['f-o2','Oxygen: how it was given',V2(function(s){return has(s.o2Type);}),0],
+ ['f-o2sub','Oxygen: exact setting',V2(function(s){return !has(s.o2Type)||o2Need(s);}),0],
  ['f-soap-s','Subjective (S)',V2(function(s){return has(s.soapS);}),0],
  ['f-loc','Level of consciousness',V2(function(s){return has(s.soapLoc);}),0],
  ['f-resp','Respiratory status',V2(function(s){return has(s.soapResp);}),0],
@@ -1395,7 +1419,7 @@ var REQS=[
  ['f-step-cann','Nurse for cannulation (license needed)',V2(stepOK('cann')),0],
  ['f-serial','Dialyzer serial no.',V2(function(s){return has(s.dialyzerSerial);}),1,'b'],
  ['f-prime','Prime',V2(function(s){return has(s.prime);}),1,'b'],
- ['f-disinf','Dialyzer disinfected by',V2(function(s){return has(s.disinfectedBy);}),1,'b'],
+ ['f-disinf','Dialyzer disinfected by',V2(function(s){return has(s.disinfectedBy)&&!(s.reuseCount>1&&/^Not applicable/.test(s.disinfectedBy));}),1,'b'],
  ['f-ufgoal','Target UF',V2(function(s){return s.ufGoal!=null;}),1,'b'],
  ['f-pretemp','Temperature before',V2(function(s){return s.preTemp!=null;}),1,'b'],
  ['f-prerr','Respiration before',V2(function(s){return s.preRR!=null;}),1,'b'],
@@ -1428,6 +1452,8 @@ function patientFormHTML(p,isNew){
    +fld('p-accsub','Exact access site',true,pSubCtl(p),'','accsub')
    +fld('p-note','Access site',true,tin('p-note',p.accessNote,'e.g. Left forearm'),'','accessSite')
    +fld('p-setting','OPD or IPD',true,sin('p-setting',SETTINGS,p.setting||setOf(p)),'OPD is outpatient. IPD is inpatient.','setting')
+   +fld('p-ptype','Patient type',true,sin('p-ptype',PTYPES,ptOf(p)),'','ptype')
+   +fld('p-ptnote','Type details',false,tin('p-ptnote',p.ptypeNote||'','For example: HBsAg positive, dedicated machine'),'Precautions or reason, shown on the dashboard.')
    +fld('p-sched','Schedule',true,tin('p-sched',p.schedule,'e.g. Mon, Wed, Fri'),'','sched')
    +fld('p-ktv','Kt/V target',true,nin('p-ktv',p.targetKtv),'','ktvTarget')
    +(isAdmin?fld('p-nurses','Assigned nurses',true,nurseChecks(p),'Only these nurses and admins can see this patient.','assign'):'')
@@ -1487,7 +1513,7 @@ function sessionFormHTML(p,ex){
   var name=myName();
   var h='<a class="back" href="'+back+'">← '+(ex?'Back to session':esc(p.name||'Patient'))+'</a><h2>'+(ex?'Edit session':'Log session')+'</h2><p class="sub" style="margin-top:4px">'+esc(p.name||'')+(p.mrn?' · Record '+esc(p.mrn):'')+(name?' · Recorded by '+esc(name):'')+'</p>';
   h+='<form id="sform" novalidate data-pid="'+p.id+'" data-sid="'+(ex?ex.id:'')+'"><div class="form-cols"><div class="stack" id="stack" data-show="'+(ex&&ex.status==='in-progress'?'b':'a')+'"><div class="stg" role="group" aria-label="Stage of the session"><button type="button" data-act="stage" data-v="a">1 Before <span class="bd" id="stg-a"></span></button><button type="button" data-act="stage" data-v="b">2 During <span class="bd" id="stg-b"></span></button><button type="button" data-act="stage" data-v="c">3 Finish <span class="bd" id="stg-c"></span></button><button type="button" data-act="stage" data-v="all">All</button></div><div class="jumpbar" id="jb"></div>';
-  var needPre=!ex||ex.preCheck!==undefined,pc=(s.preCheck||[]);
+  var needPre=!ex||ex.preCheck!==undefined||ex.status!=='completed',pc=(s.preCheck||[]);
   if(needPre)h+=grp('Safety check before starting',REQT,'<div class="f is-req" data-f="f-pre-check" id="pre-wrap" data-req="1"><label><span>Tick every item</span>'+info('precheck')+'</label><div class="chks">'+PRE.map(function(x){return '<label><input type="checkbox" name="pre" value="'+x[0]+'"'+(pc.indexOf(x[0])>=0?' checked':'')+'> <span>'+esc(x[1])+'</span></label>';}).join('')+'</div></div>');
   h+=grp('Treatment',REQT,'<div class="grid-f">'
     +fld('f-date','Date',true,'<input id="f-date" type="date" value="'+val(s.date)+'">')
@@ -1523,7 +1549,8 @@ function sessionFormHTML(p,ex){
       +[['ain','A in'],['aout','A out'],['vin','V in'],['vout','V out']].map(function(x){return fld('f-lum-'+x[0],'Lumen '+x[1],false,sin('f-lum-'+x[0],LUM,lm[x[0]]));}).join('')+'</div></details>');
     h+=grp('Findings before starting',REQT,'<div class="grid-f">'
       +fld('f-sob','Shortness of breath',true,sin('f-sob',NP,s.findSOB))
-      +fld('f-spo2','Oxygen saturation (%)',true,nin('f-spo2',s.spo2),'Room air unless noted.')
+      +fld('f-spo2','Oxygen saturation (%)',true,nin('f-spo2',s.spo2),'Percent, 50 to 100.')
+      +fld('f-o2','Oxygen given during the reading',true,sin('f-o2',O2T,s.o2Type)+subCtl('o2',s),'Choose how oxygen was given. A pop-up asks for the exact setting.')
       +fld('f-edema','Edema',true,sin('f-edema',NP,s.findEdema))
       +fld('f-bleed','Signs of bleeding',true,sin('f-bleed',NP,s.findBleed))+'</div>');
   }
@@ -1544,14 +1571,13 @@ function sessionFormHTML(p,ex){
     +fld('f-cardio','Cardiovascular status',false,tin('f-cardio',s.soapCardio))+fld('f-skin','Skin and extremities',false,tin('f-skin',s.soapSkin))+fld('f-gi','GI status',false,tin('f-gi',s.soapGI))+fld('f-ivf','IV fluids or side drip',false,tin('f-ivf',s.soapIVF))+'</div><div style="height:10px"></div>'+fld('f-other','Other observations',false,'<textarea id="f-other">'+esc(s.soapOther||'')+'</textarea>')+'</details>');
   if(needPre){
     h+=witnessGrp(s,p)+stepGrp('Who set up and started the run',['prep','cann'],s,REQT);
-    h+=grp('Run set-up',REQT,'<div class="grid-f">'+fld('f-serial','Dialyzer serial no.',true,tin('f-serial',s.dialyzerSerial),'','serial')+fld('f-prime','Prime',true,sin('f-prime',PRIMES,s.prime),'','prime')+fld('f-disinf','Dialyzer disinfected by',true,tin('f-disinf',s.disinfectedBy))+'</div><input type="hidden" id="f-nurse" value="'+val(s.nurse)+'"><input type="hidden" id="f-bolus" value="'+val(s.hepBolus)+'"><input type="hidden" id="f-hourly" value="'+val(s.hepHourly)+'">');
+    h+=grp('Run set-up',REQT,'<div class="grid-f">'+fld('f-serial','Dialyzer serial no.',true,tin('f-serial',s.dialyzerSerial),'','serial')+fld('f-prime','Prime',true,sin('f-prime',PRIMES,s.prime),'','prime')+fld('f-disinf','Dialyzer disinfected by',true,disinSel(s),'Choose who cleaned it. For a new dialyzer, choose Not applicable.')+'</div><input type="hidden" id="f-nurse" value="'+val(s.nurse)+'"><input type="hidden" id="f-bolus" value="'+val(s.hepBolus)+'"><input type="hidden" id="f-hourly" value="'+val(s.hepHourly)+'">');
   }else{
   h+=secOpen(!!(ex&&(s.dialyzerSerial||s.nurse||s.prime||s.hepBolus||s.hepHourly||s.disinfectedBy||(!needPre&&s.thrill))),'More treatment details',false,'','<div class="grid-f">'
     +fld('f-serial','Dialyzer serial no.',false,tin('f-serial',s.dialyzerSerial))
     +fld('f-nurse','Nurse initials or name',false,tin('f-nurse',s.nurse),'Your sign-in name is saved automatically.')
     +fld('f-prime','Prime',false,sin('f-prime',PRIMES,s.prime),'','prime')
     +(needPre?'':thrillF)
-    +(needPre?fld('f-disinf','Dialyzer disinfected by',false,tin('f-disinf',s.disinfectedBy)):'')
     +fld('f-bolus','Heparin bolus',false,tin('f-bolus',s.hepBolus,'e.g. 2,000 units'),'','bolus')
     +fld('f-hourly','Heparin per hour',false,tin('f-hourly',s.hepHourly),'','hephr')+'</div>');
   }
@@ -1564,7 +1590,7 @@ function sessionFormHTML(p,ex){
     +fld('f-teach','Health teaching topic',true,'<textarea id="f-teach" placeholder="e.g. fluid limit, renal diet, compliance">'+esc(s.teaching||'')+'</textarea>','','',FINS)+'<div style="height:12px"></div>'
     +fld('f-eval','E: evaluation',true,'<textarea id="f-eval" placeholder="How the patient responded to treatment and teaching">'+esc(s.soapE||'')+'</textarea>','','',FINS)
     +'<details class="plain" style="margin-top:12px"'+(s.postObs?' open':'')+'><summary>After-dialysis notes (optional)</summary><div style="margin-top:10px">'+fld('f-postobs','Other observations after',false,'<textarea id="f-postobs">'+esc(s.postObs||'')+'</textarea>')+'</div></details>');
-  h+=blk(needPre,!!(ex&&(s.ufGoal!=null||s.ufActual!=null)),'Fluid removal','<div class="grid-f">'+fld('f-ufgoal','Target UF (L)',needPre,nin('f-ufgoal',s.ufGoal),'','uf')+fld('f-ufact','Actual UF (L)',false,nin('f-ufact',s.ufActual),'Left blank, pre-weight minus post-weight is used.','uf')+'</div>');
+  h+=blk(needPre,!!(ex&&(s.ufGoal!=null||s.ufActual!=null)),'Fluid removal','<div class="grid-f">'+fld('f-ufgoal','Target UF (L)',needPre,nin('f-ufgoal',s.ufGoal),'Filled in as pre-weight minus dry weight. Change it to match the doctor’s order.','uf')+fld('f-ufact','Actual UF (L)',false,nin('f-ufact',s.ufActual),'Left blank, pre-weight minus post-weight is used.','uf')+'</div>');
   h+=blk(needPre,!!(ex&&(s.preTemp!=null||s.preRR!=null||s.spo2!=null||s.postTemp!=null||s.postRR!=null)),'Temperature, breathing and oxygen','<p class="sub hint">Before dialysis</p><div class="grid-f">'+fld('f-pretemp','Temperature (°C)',needPre,nin('f-pretemp',s.preTemp))+fld('f-prerr','Respiration (/min)',needPre,nin('f-prerr',s.preRR))+(needPre?'':fld('f-spo2','Oxygen saturation (%)',false,nin('f-spo2',s.spo2)))+'</div><p class="sub hint" style="margin-top:16px">After dialysis</p><div class="grid-f">'+fld('f-posttemp','Temperature (°C)',false,nin('f-posttemp',s.postTemp))+fld('f-postrr','Respiration (/min)',false,nin('f-postrr',s.postRR))+'</div>');
   h+=secOpen(!!(ex&&(s.preBUN!=null||s.postBUN!=null)),'Blood tests',false,'','<div class="grid-f">'+fld('f-prebun','BUN before (mg/dL)',false,nin('f-prebun',s.preBUN),'','bun')+fld('f-postbun','BUN after (mg/dL)',false,nin('f-postbun',s.postBUN),'With both values, Kt/V and URR are worked out.','bun')+'</div>');
   h+=needPre?grp('Readings during the run',FINT,'<p class="sub hint" style="margin:-4px 0 12px">Record a set at least every hour. Fields marked * are needed in every reading.'+info('readings')+' <b id="rd-count"></b></p><div class="f is-req" data-f="f-readings"><div id="readings">'+vit.map(readingRow).join('')+'</div></div><button type="button" class="btn small" style="margin-top:12px" data-act="add-reading">Add reading</button>'):secOpen(vit.length>0,'Readings during the run',false,vit.length?vit.length+' recorded':'','<p class="sub hint">One entry per check. Add only what you measured. Open Machine values for flows and pressures.</p><div id="readings">'+vit.map(readingRow).join('')+'</div><button type="button" class="btn small" style="margin-top:12px" data-act="add-reading">Add reading</button>');
@@ -1600,7 +1626,7 @@ preCheck:$$('input[name=pre]:checked').map(function(x){return x.value;}),
     accessSide:g('f-aside'),accessType:g('f-acc'),thrill:g('f-thrill'),
     qb:num(g('f-qb')),qd:num(g('f-qd')),prime:g('f-prime'),anticoagType:g('f-atype'),hepBolus:g('f-bolus').trim(),hepHourly:g('f-hourly').trim(),
     preBUN:num(g('f-prebun')),postBUN:num(g('f-postbun')),
-    preSBP:num(g('f-presbp')),preDBP:num(g('f-predbp')),preHR:num(g('f-prehr')),preTemp:num(g('f-pretemp')),preRR:num(g('f-prerr')),spo2:num(g('f-spo2')),
+    preSBP:num(g('f-presbp')),preDBP:num(g('f-predbp')),preHR:num(g('f-prehr')),preTemp:num(g('f-pretemp')),preRR:num(g('f-prerr')),spo2:num(g('f-spo2')),o2Type:g('f-o2'),o2Sub:g('f-o2sub'),o2Note:g('f-o2note').trim(),
     postSBP:num(g('f-postsbp')),postDBP:num(g('f-postdbp')),postHR:num(g('f-posthr')),postTemp:num(g('f-posttemp')),postRR:num(g('f-postrr')),
     notes:g('f-notes').trim(),doctorOrder:g('f-order').trim(),endorsement:g('f-endorse').trim(),
     symptoms:$$('input[name=sym]:checked').map(function(x){return x.value;}),
@@ -1616,7 +1642,7 @@ function missing(s,final){
   var m=REQS.filter(function(r){return(!r[3]||final)&&!r[2](s);}).map(function(r){return [r[0],r[1]];});
   if(!myName()&&!($('#f-myname')&&$('#f-myname').value.trim()))m.push(['f-myname','Your name']);
   if((s.vitals||[]).some(function(v){return v.t==null;})&&!m.some(function(x){return x[0]==='f-readings';}))m.push(['f-readings','Time on every reading']);
-  return domSort(m);
+  return domSort(m.concat(plaus(s)));
 }
 function setStage(v,scroll){
   var st=$('#stack');if(!st)return;st.setAttribute('data-show',v);
@@ -1629,21 +1655,23 @@ function updateForm(){
   var el=$('#preview');if(!el)return;
   var form=$('#sform'),sid=form.getAttribute('data-sid'),pid=form.getAttribute('data-pid'),s=collect(),p=patients[pid]||{};
   var all=pSessions(pid).filter(function(x){return x.id!==sid&&(x.date+' '+(x.startTime||'00:00'))<(s.date+' '+(s.startTime||'00:00'));});
-  var c=calc(s,all[all.length-1],p);
+  var c=calc(s,prevDone(all,all.length),p);
   el.innerHTML='<div class="calc"><div><div class="lbl">Weight gain</div><div class="v">'+(c.idwg==null?'–':fmt(c.idwg)+' kg')+'</div></div><div><div class="lbl">Gain % dry wt</div><div class="v">'+(c.idwgPct==null?'–':fmt(c.idwgPct)+'%')+'</div></div><div><div class="lbl">UF rate</div><div class="v">'+fmt(c.ufr)+'</div></div><div><div class="lbl">spKt/V</div><div class="v">'+fmt(c.ktv,2)+'</div></div></div><div style="margin-top:12px">'+flagsHTML(c)+'</div>';
   var done=0,left=[],cnt={a:0,b:0,c:0};
   REQS.forEach(function(r){var ok=r[2](s);if(ok)done++;else{left.push(r);cnt[stageOfReq(r)]++;}var f=$('[data-f="'+r[0]+'"]');if(f){f.classList.toggle('todo',!ok);if(ok)f.classList.remove('bad');}});
   ['a','b','c'].forEach(function(k){var bd=$('#stg-'+k);if(bd){bd.innerHTML=cnt[k]?cnt[k]+'<span class="lf"> left</span>':'✓';bd.className='bd'+(cnt[k]?'':' ok');}});
   var pct=Math.round(done/REQS.length*100);
   var ls=domSort(left.map(function(r){return [r[0],r[1],r];}));
-  $('#ckl').innerHTML='<li class="prog-li"><div class="prog"><i style="width:'+pct+'%"></i></div><span class="sub">'+done+' of '+REQS.length+' required fields filled</span></li>'+ls.map(function(x){var r=x[2],st=stageOfReq(r);return '<li><button type="button" class="jump" data-act="jump" data-id="'+r[0]+'">'+r[1]+'</button>'+(st==='b'?' <span class="sub">(During)</span>':(st==='c'?' <span class="sub">(at finish)</span>':''))+'</li>';}).join('');
-  var jb=$('#jb');if(jb)jb.innerHTML=left.length?'<button type="button" class="btn small" data-act="jump-next">Go to next required field · '+left.length+' left</button>':'<span class="pill ok">All required fields filled</span>';
+  var ckH='<li class="prog-li"><div class="prog"><i style="width:'+pct+'%"></i></div><span class="sub">'+done+' of '+REQS.length+' required fields filled</span></li>'+ls.map(function(x){var r=x[2],st=stageOfReq(r);return '<li><button type="button" class="jump" data-act="jump" data-id="'+r[0]+'">'+r[1]+'</button>'+(st==='b'?' <span class="sub">(During)</span>':(st==='c'?' <span class="sub">(at finish)</span>':''))+'</li>';}).join('');
+  var ckE=$('#ckl');if(ckE&&ckE.getAttribute('data-h')!==ckH){ckE.innerHTML=ckH;ckE.setAttribute('data-h',ckH);}
+  var jb=$('#jb'),jbH=left.length?'<button type="button" class="btn small" data-act="jump-next">Go to next required field · '+left.length+' left</button>':'<span class="pill ok">All required fields filled</span>';
+  if(jb&&jb.getAttribute('data-h')!==jbH){jb.innerHTML=jbH;jb.setAttribute('data-h',jbH);}
   var rc=$('#rd-count');if(rc)rc.textContent=(s.vitals||[]).filter(rdOK).length+' of '+needReadings(s)+' hourly readings complete';
   refreshSubs();
 }
 function viewSession(s,p){
-  var ps=pSessions(p.id),i=ps.indexOf(s),prev=i>0?ps[i-1]:null;
-  if(s.status==='void'){var before=ps.filter(function(x){return cmpS(x,s)<0;});prev=before[before.length-1]||null;}
+  var ps=pSessions(p.id),i=ps.indexOf(s),prev=prevDone(ps,i);
+  if(s.status==='void'){var before=ps.filter(function(x){return cmpS(x,s)<0;});prev=prevDone(before,before.length);}
   var c=calc(s,prev,p),h='';
   var sub=[];
   if(s.treatmentNo)sub.push('Treatment no. '+esc(s.treatmentNo));
@@ -1786,7 +1814,7 @@ function boardHTML(){
     var p=r.p,s=r.st.s,rs=s?rowsFor(p.id).filter(function(x){return x.s.id===s.id;})[0]:null,fl=rs?rs.c.flags.length:0;
     var pill=r.st.k==='none'?'<span class="pill mute">Not started</span>':(r.st.k==='prog'?'<span class="pill warn">In progress</span>':'<span class="pill ok">Completed</span>')+(fl?'<span class="pill '+(rs.c.flags.some(function(f){return f.level==='crit';})?'crit':'warn')+'">'+fl+(fl===1?' flag':' flags')+'</span>':'');
     var act=r.st.k==='none'?(canWrite?'<a class="btn small primary" href="#p-'+p.id+'-log">Start session</a>':''):(r.st.k==='prog'?'<a class="btn small" href="#s-'+s.id+(canWrite?'-edit':'')+'">'+(canWrite?'Continue':'Open')+'</a>':'<a class="btn small" href="#s-'+s.id+'">Open</a>');
-    h+='<div class="brow"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><div><a class="nm" href="#p-'+p.id+'">'+esc(p.name||'Unnamed')+'</a>'+setPill(p)+'<div class="sub">'+esc([p.mrn,p.schedule,nurseNames(p)?'Nurse: '+nurseNames(p):''].filter(Boolean).join(' · '))+'</div>'+(runClock(s)?'<div class="clock">'+esc(runClock(s))+'</div>':'')+(r.st.k==='none'?endoLine(p):'')+'</div><div>'+pill+'</div><div>'+act+'</div></div>';
+    h+='<div class="brow"><span class="av" aria-hidden="true">'+esc(initials(p.name))+'</span><div><a class="nm" href="#p-'+p.id+'">'+esc(p.name||'Unnamed')+'</a>'+setPill(p)+typePill(p)+'<div class="sub">'+esc([p.mrn,p.schedule,nurseNames(p)?'Nurse: '+nurseNames(p):'',(ptOf(p)!=='Standard'&&p.ptypeNote)?p.ptypeNote:''].filter(Boolean).join(' · '))+'</div>'+(runClock(s)?'<div class="clock">'+esc(runClock(s))+'</div>':'')+(r.st.k==='none'?endoLine(p):'')+'</div><div>'+pill+'</div><div>'+act+'</div></div>';
   });
   h+=scheduleHTML();
   var tb=todoBoard();
@@ -1885,7 +1913,7 @@ function runClock(s){
   var q=s.startTime.split(':').map(Number),now=new Date(),st=new Date(now.getFullYear(),now.getMonth(),now.getDate(),q[0],q[1]),el=(now-st)/6e4,left=s.durationMin-el;
   var end=new Date(st.getTime()+s.durationMin*6e4),e=('0'+end.getHours()).slice(-2)+':'+('0'+end.getMinutes()).slice(-2);
   if(el<0)return 'Starts at '+s.startTime;
-  var lt=(s.vitals||[]).reduce(function(m,v){return v.t!=null&&v.t>m?v.t:m;},-1),due=(lt<0?0:lt)+30,rd=el>=due?'Readings due now (last '+(lt<0?'none yet':'at '+lt+' min')+')':'Next readings in '+mins(due-el);
+  var lt=(s.vitals||[]).reduce(function(m,v){return v.t!=null&&v.t>m?v.t:m;},-1),due=(lt<0?0:lt)+60,rd=el>=due?'Readings due now (last '+(lt<0?'none yet':'at '+lt+' min')+')':'Next readings in '+mins(due-el);
   return (left>=0?'Planned end '+e+' · '+mins(left)+' left':'Past planned end ('+e+') by '+mins(-left))+' · '+rd;
 }
 function autoReminders(p){
@@ -1949,7 +1977,7 @@ function extraBlocks(s){
   var h='<div class="kvs" style="margin-top:22px">'
    +'<div><h3>Dialyzer and machine</h3><dl class="kv">'+kvRow('Uses',s.reuseCount)+kvRow('First use',s.dialyzerFirstUse?fmtD(s.dialyzerFirstUse):'')+kvRow('Perassay test',s.peraTest)+kvRow('Residual peracetic test',s.residTest)+kvRow('Disinfected by',s.disinfectedBy)+'</dl></div>'
    +'<div><h3>Access check</h3><dl class="kv">'+kvRow('Needle',s.needle)+kvRow('Arterial attempts',ca.join('; '))+kvRow('Venous attempts',cv.join('; '))+kvRow('Infection signs',s.accessInfect)+kvRow('Catheter lumens',lms)+'</dl></div>'
-   +'<div><h3>Findings before starting</h3><dl class="kv">'+kvRow('Shortness of breath',s.findSOB)+kvRow('Edema',s.findEdema)+kvRow('Bleeding',s.findBleed)+kvRow('Consciousness',s.soapLoc)+kvRow('Respiratory status',s.soapResp)+'</dl></div></div>';
+   +'<div><h3>Findings before starting</h3><dl class="kv">'+kvRow('Shortness of breath',s.findSOB)+kvRow('Edema',s.findEdema)+kvRow('Bleeding',s.findBleed)+kvRow('Oxygen saturation',s.spo2!=null?s.spo2+'%':'')+kvRow('Oxygen given',[s.o2Type,s.o2Sub].filter(Boolean).join(': ')+(s.o2Note?' ('+s.o2Note+')':''))+kvRow('Consciousness',s.soapLoc)+kvRow('Respiratory status',s.soapResp)+'</dl></div></div>';
   var sx=[['S: subjective',s.soapS],['Cardiovascular',s.soapCardio],['Skin and extremities',s.soapSkin],['GI status',s.soapGI],['IV fluids',s.soapIVF],['Other observations',s.soapOther],['A: assessment',s.soapA],['During the run',s.soapIntra],['After dialysis',[s.postLoc,s.postObs].filter(Boolean).join('. ')],['Health teaching',s.teaching],['E: evaluation',s.soapE],['How the run ended',s.endType?s.endType+(s.endReason?': '+s.endReason:'')+(s.actualMin?' ('+mins(s.actualMin)+')':''):'']].filter(function(x){return x[1];});
   h+='<div class="sec-h"><h3>Nursing assessment (SOAPIE)</h3><span class="sub">Initiated by '+esc(s.initiatedBy||nameOf(s.createdBy,s.createdByName))+(s.terminatedBy?' · terminated by '+esc(s.terminatedBy):'')+'</span></div><dl class="sx">'+sx.map(function(x){return '<dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd>';}).join('')+'</dl>';
   return h+stepsView(s);
@@ -2119,7 +2147,7 @@ function saveSession(final){
   var miss=missing(s,final);
   if(miss.length){
     miss.forEach(function(m){var f=$('[data-f="'+m[0]+'"]');if(f)f.classList.add('bad');});
-    err.innerHTML=(final?'To complete this session, fill in: ':'To save, fill in: ')+jumpList(miss)+'. Tap an item to go to it.';err.hidden=false;rowGaps();
+    err.innerHTML=(final?'To complete this session, fill in or fix: ':'To save, fill in or fix: ')+jumpList(miss)+'. Tap an item to go to it.';err.hidden=false;rowGaps();
     jumpTo(miss[0][0]);
     return;
   }
@@ -2157,13 +2185,13 @@ function saveSession(final){
 }
 function savePatient(id){
   var g=function(i){var el=$('#'+i);return el?el.value:'';},err=$('#p-err'),miss=[];
-  [['p-name','Full name',1],['p-mrn','Record number',1],['p-age','Age',2],['p-sex','Sex',1],['p-height','Height',2],['p-dry','Dry weight',2],['p-dx','Diagnosis',1],['p-access','Access',1],['p-note','Access site',1],['p-sched','Schedule',1],['p-setting','OPD or IPD',1],['p-ktv','Kt/V target',2]].forEach(function(f){var v=g(f[0]);if(f[2]===2?!(num(v)>0):!v.trim())miss.push([f[0],f[1]]);});
+  [['p-name','Full name',1],['p-mrn','Record number',1],['p-age','Age',2],['p-sex','Sex',1],['p-height','Height',2],['p-dry','Dry weight',2],['p-dx','Diagnosis',1],['p-access','Access',1],['p-note','Access site',1],['p-sched','Schedule',1],['p-setting','OPD or IPD',1],['p-ptype','Patient type',1],['p-ktv','Kt/V target',2]].forEach(function(f){var v=g(f[0]);if(f[2]===2?!(num(v)>0):!v.trim())miss.push([f[0],f[1]]);});
   $$('#pform .f.bad').forEach(function(f){f.classList.remove('bad');});
   if(!g('p-accsub').trim()||(/^Other/.test(g('p-accsub'))&&!g('p-accnote').trim()))miss.push(['p-accsub','Exact access site']);
   if(isAdmin&&$('input[name=pn]')&&!$$('input[name=pn]:checked').length)miss.push(['p-nurses','Assigned nurses']);
   if(miss.length){miss=domSort(miss);miss.forEach(function(m){var f=$('[data-f="'+m[0]+'"]');if(f)f.classList.add('bad');});err.innerHTML='Fill in: '+jumpList(miss)+'. Tap an item to go to it.';err.hidden=false;jumpTo(miss[0][0]);return;}
   err.hidden=true;
-  var data={name:g('p-name').trim(),mrn:g('p-mrn').trim(),dryWeight:num(g('p-dry')),age:num(g('p-age')),sex:g('p-sex'),height:num(g('p-height')),diagnosis:g('p-dx').trim(),access:g('p-access'),accessNote:g('p-note').trim(),schedule:g('p-sched').trim(),targetKtv:num(g('p-ktv')),accessSub:g('p-accsub'),accessSubNote:g('p-accnote').trim(),setting:g('p-setting')},now=nowISO(),pending;
+  var data={name:g('p-name').trim(),mrn:g('p-mrn').trim(),dryWeight:num(g('p-dry')),age:num(g('p-age')),sex:g('p-sex'),height:num(g('p-height')),diagnosis:g('p-dx').trim(),access:g('p-access'),accessNote:g('p-note').trim(),schedule:g('p-sched').trim(),targetKtv:num(g('p-ktv')),accessSub:g('p-accsub'),accessSubNote:g('p-accnote').trim(),setting:g('p-setting'),ptype:g('p-ptype')||'Standard',ptypeNote:g('p-ptnote').trim()},now=nowISO(),pending;
   if(isAdmin&&$('input[name=pn]'))data.nurses=$$('input[name=pn]:checked').map(function(x){return x.value;});else if(!id)data.nurses=[me.id];
   if(id){
     var cur=patients[id],fields=[];
@@ -2189,7 +2217,7 @@ function voidSession(sid,reason,restore){
 }
 function demoV2(done){
   var d20=new Date();d20.setDate(d20.getDate()-20);
-  var o={needPre:true,preCheck:PRE.map(function(x){return x[0];}),reuseCount:done?7:4,dialyzerFirstUse:isoDate(d20),peraTest:PERA[1],residTest:PERA[0],needle:'16G',cannA:[GRADES[0],null,null,null],cannV:[GRADES[0],null,null,null],accessInfect:'None',lumen:{ain:null,aout:null,vin:null,vout:null},findSOB:'None',findEdema:'None',findBleed:'None',spo2:98,soapS:'No complaints',soapLoc:'Conscious',soapResp:RESPS[0],soapCardio:'No chest discomfort',soapSkin:'Dry and intact',soapGI:'No abdominal discomfort',soapIVF:'None',soapOther:'None',soapA:'Altered homeostasis related to compromised regulatory mechanism secondary to ESKD',soapIntra:'Tolerating the run, no complaints.',initiatedBy:myName()};
+  var o={o2Type:'Room air',o2Sub:'Finger probe',o2Note:'',needPre:true,preCheck:PRE.map(function(x){return x[0];}),reuseCount:done?7:4,dialyzerFirstUse:isoDate(d20),peraTest:PERA[1],residTest:PERA[0],needle:'16G',cannA:[GRADES[0],null,null,null],cannV:[GRADES[0],null,null,null],accessInfect:'None',lumen:{ain:null,aout:null,vin:null,vout:null},findSOB:'None',findEdema:'None',findBleed:'None',spo2:98,soapS:'No complaints',soapLoc:'Conscious',soapResp:RESPS[0],soapCardio:'No chest discomfort',soapSkin:'Dry and intact',soapGI:'No abdominal discomfort',soapIVF:'None',soapOther:'None',soapA:'Altered homeostasis related to compromised regulatory mechanism secondary to ESKD',soapIntra:'Tolerating the run, no complaints.',initiatedBy:myName()};
   if(done)Object.assign(o,{postLoc:'Conscious',teaching:'Compliance to treatment, limit oral fluid intake, renal diet',soapE:'Verbalized understanding of the teaching.',endType:'Completed',actualMin:240,terminatedBy:myName()});
   return o;
 }
@@ -2233,11 +2261,11 @@ function loadExample(){
    {n:'Dela Cruz, Juan (sample)',mrn:'EX-0001',dry:68.5,age:52,sex:'Male',ht:168,dx:'ESKD secondary to chronic glomerulonephritis (sample)',acc:'AV fistula',note:'Left forearm',days:[w7(0),w7(2),w7(4)],ktv:1.4,inprog:true,
     cfg:{seed:2026,n:12,today:false,bad:[7],gain:1.5,gainR:0.9,badGain:3.3,dur:240,start:'07:30',sbp:146,dbp:80,hr:70,qb:350,ratio:0.23,shift:'1st',setting:'OPD',machine:'4',dialyzer:'F7',side:'Left',access:'AV fistula',thrill:'Strong thrill and bruit',anti:'Regular heparin',bolus:'2,000 units',hourly:'1,000 units',tx0:40,badNote:'Run ended 30 minutes early.'},
     notes:[{c:'Handover',t:'Left forearm fistula: needle site oozed after the last run. Hold pressure for 10 minutes and check before discharge.',pin:true,last:true},{c:'Education',t:'Reviewed fluid limit and renal diet. Patient verbalized understanding.'}],
-    tasks:[{c:'Blood test',t:'Repeat potassium before the next session',due:-1},{c:'Access care',t:'Check the fistula needle site before discharge',due:0}],paper:['member','agree'],ph:true},
+    tasks:[{c:'Blood test',t:'Repeat potassium before the next session',due:-1},{c:'Access care',t:'Check the fistula needle site before discharge',due:0}],paper:['member','agree'],ph:true,pty:'Standard'},
    {n:'Santos, Maria (sample)',mrn:'EX-0002',dry:58.0,age:67,sex:'Female',ht:155,dx:'Diabetic nephropathy, ESKD (sample)',acc:'AV graft',note:'Right upper arm',days:[w7(0),w7(2),w7(4)],ktv:1.4,
     cfg:{seed:11,n:14,today:true,badToday:true,bad:[3,9],gain:2.3,gainR:0.9,badGain:3.1,dur:240,start:'06:30',sbp:140,dbp:76,hr:76,qb:350,ratio:0.28,shift:'1st',setting:'OPD',machine:'7',dialyzer:'F7',side:'Right',access:'AV graft',thrill:'Weak thrill',anti:'Tight heparin',bolus:'1,000 units',hourly:'500 units',tx0:80,sym:['Cramps','Hypotension'],badNote:'Patient is diabetic, monitor glucose.',endorse:'Review dry weight with the doctor. Next HD in 2 days.'},
     notes:[{c:'Concern',t:'Weight gain has been above the limit for several sessions. Doctor to review the dry weight.',pin:true},{c:'Handover',t:'Prone to low BP in the last hour of the run. Check BP every 15 minutes after hour 3.',last:true}],
-    tasks:[{c:'Education',t:'Repeat fluid and salt teaching with the daughter present',due:0},{c:'Medication',t:'Ask the doctor about midodrine before dialysis',due:1}],paper:['member'],v2:{soapS:'Feels tired, no chest pain',cannA:[GRADES[1],null,null,null],cannV:[GRADES[0],null,null,null],needle:'15G'}},
+    tasks:[{c:'Education',t:'Repeat fluid and salt teaching with the daughter present',due:0},{c:'Medication',t:'Ask the doctor about midodrine before dialysis',due:1}],paper:['member'],pty:'High-risk',ptn:'Diabetic with low BP in the last hour. Check BP every 15 minutes.',v2:{soapS:'Feels tired, no chest pain',cannA:[GRADES[1],null,null,null],cannV:[GRADES[0],null,null,null],needle:'15G'}},
    {n:'Garcia, Roberto (sample)',mrn:'EX-0003',dry:74.0,age:44,sex:'Male',ht:172,dx:'Hypertensive nephrosclerosis, ESKD (sample)',acc:'Tunneled catheter',note:'Right internal jugular',days:[w7(0),w7(2),w7(4)],ktv:1.4,
     cfg:{seed:21,n:10,today:false,bad:[],gain:1.2,gainR:0.8,badGain:2.5,dur:240,start:'07:30',sbp:150,dbp:90,hr:72,qb:300,ratio:0.22,shift:'1st',setting:'OPD',machine:'3',dialyzer:'F8',side:'Right',access:'Tunneled catheter',thrill:'Not applicable',anti:'Regular heparin',bolus:'2,000 units',hourly:'1,000 units',tx0:25,endorse:'Change the catheter dressing next session.'},
     notes:[{c:'Handover',t:'Catheter dressing change due at the next session. Check the exit site for redness.',pin:true,last:true}],
@@ -2250,10 +2278,10 @@ function loadExample(){
     cfg:{seed:41,n:4,today:false,skipYesterday:true,noBUN:true,bad:[],gain:1.6,gainR:0.6,badGain:2.5,dur:180,start:'09:00',sbp:128,dbp:80,hr:84,qb:250,ratio:0.3,shift:'1st',setting:'IPD',machine:'12',dialyzer:'F6',side:'Right',access:'Temporary catheter',thrill:'Not applicable',anti:'NSS flushing',bolus:'',hourly:'',tx0:3,endorse:'Inpatient. Confirm the next session time with the ward.'},
     notes:[{c:'Handover',t:'Inpatient on the medical ward. Heparin-free runs because of low platelets. Confirm transport with the ward.',pin:true,last:true}],
     tasks:[{c:'Blood test',t:'Send BUN before and after the next session',due:-2}],paper:[],v2:{needle:'',cannA:[null,null,null,null],cannV:[null,null,null,null],findEdema:'Present',soapS:'Mild leg swelling, no shortness of breath',lumen:{ain:'Good',aout:'Good',vin:'Good',vout:'Poor'}}}
-  ];
+  ].concat(MOREP(w7));
   P.forEach(function(pt,pi){
     var pid=newId('p')+pi,sch=dsOf(pt.days.slice());
-    jobs.push(db.doc('patients/'+pid).set(Object.assign({name:pt.n,mrn:pt.mrn,dryWeight:pt.dry,age:pt.age,sex:pt.sex,height:pt.ht,diagnosis:pt.dx,access:pt.acc,accessNote:pt.note,schedule:sch,targetKtv:pt.ktv,status:'active',setting:pt.cfg.setting||'OPD',accessSub:['Radiocephalic (wrist)','Upper-arm straight','Right internal jugular','Brachiocephalic (elbow)','Right femoral'][pi],nurses:(function(){var NN=staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;});return NN.length?[NN[pi%NN.length].id]:[];})()},base)));
+    jobs.push(db.doc('patients/'+pid).set(Object.assign({name:pt.n,mrn:pt.mrn,dryWeight:pt.dry,age:pt.age,sex:pt.sex,height:pt.ht,diagnosis:pt.dx,access:pt.acc,accessNote:pt.note,schedule:sch,targetKtv:pt.ktv,status:'active',setting:pt.cfg.setting||'OPD',ptype:pt.pty||'Standard',ptypeNote:pt.ptn||'',accessSub:SAMPSUB[pi],nurses:(function(){var NN=staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;});return NN.length?[NN[pi%NN.length].id]:[];})()},base)));
     var ss=genSessions(Object.assign({days:pt.days,dry:pt.dry},pt.cfg)),n=ss.length,sids=ss.map(function(s,i){return newId('s')+pi+'x'+i;});
     ss.forEach(function(s,i){
       var extra={};
@@ -2273,7 +2301,7 @@ function loadExample(){
     jobs.push(db.doc('paperwork/'+pid).set({items:items,updatedAt:now,updatedBy:me.id,example:true}));
     pt.id=pid;
   });
-  afterWrite(Promise.all(jobs).then(function(){return logEvent('example',P[0].id,null);}).then(function(){toast('5 sample patients added');location.hash='today';})).catch(function(){});
+  afterWrite(Promise.all(jobs).then(function(){return logEvent('example',P[0].id,null);}).then(function(){toast(P.length+' sample patients added');location.hash='today';})).catch(function(){});
 }
 function removeExamples(){
   var jobs=[];
@@ -2347,6 +2375,39 @@ function syncAuthStaff(){
   }).catch(function(){});
 }
 
+
+/* ---- more sample patients: different types and schedules ---- */
+function MOREP(w7){
+  var base={bad:[],gainR:0.7,badGain:2.6,ratio:0.27,dialyzer:'F7',thrill:'Strong thrill and bruit',bolus:'',hourly:''};
+  var C=function(o){return Object.assign({},base,o);};
+  return [
+   {n:'Reyes, Antonio (sample)',mrn:'EX-0006',dry:70.0,age:58,sex:'Male',ht:170,dx:'Diabetic nephropathy, ESKD. Hepatitis B surface antigen positive (sample)',acc:'AV fistula',note:'Left forearm',days:[w7(0),w7(2),w7(4)],ktv:1.4,inprog:true,pty:'Infectious',ptn:'Hepatitis B positive. Dedicated machine 15 and isolation station. Own supplies.',
+    cfg:C({seed:51,n:8,today:false,gain:1.6,dur:240,start:'17:30',sbp:138,dbp:78,hr:72,qb:320,shift:'3rd',setting:'OPD',machine:'15',side:'Left',access:'AV fistula',anti:'Regular heparin',bolus:'2,000 units',hourly:'1,000 units',tx0:60,endorse:'Clean and disinfect machine 15 after use. Next HD in 2 days.'}),
+    notes:[{c:'Handover',t:'HBsAg positive. Use the dedicated machine and the isolation station. Wear a gown and gloves, and discard waste in the infectious bin.',pin:true,last:true}],
+    tasks:[{c:'Blood test',t:'Repeat hepatitis B surface antibody and liver tests this month',due:4}],paper:['member','agree']},
+   {n:'Villanueva, Carmen (sample)',mrn:'EX-0007',dry:55.0,age:63,sex:'Female',ht:157,dx:'Hypertensive nephrosclerosis, ESKD. Hepatitis C positive (sample)',acc:'AV graft',note:'Right forearm loop',days:[w7(1),w7(3),w7(5)],ktv:1.4,pty:'Infectious',ptn:'Hepatitis C positive. Standard precautions. Use machine 11 and clean it after use.',
+    cfg:C({seed:61,n:8,today:false,gain:1.8,dur:240,start:'13:30',sbp:144,dbp:82,hr:74,qb:330,shift:'2nd',setting:'OPD',machine:'11',side:'Right',access:'AV graft',thrill:'Weak thrill',anti:'Low-dose heparin',bolus:'1,000 units',hourly:'500 units',tx0:95,endorse:'Next HD in 2 days. Check the graft thrill.'}),
+    notes:[{c:'Handover',t:'Hepatitis C positive. Use machine 11 and clean it after use. Standard precautions for all staff.',pin:true,last:true}],
+    tasks:[{c:'Referral',t:'Follow up the hepatology referral for antiviral treatment',due:6}],paper:['member','agree','order']},
+   {n:'Mendoza, Ricardo (sample)',mrn:'EX-0008',dry:66.0,age:47,sex:'Male',ht:169,dx:'Acute kidney injury on chronic kidney disease with uremic encephalopathy (sample)',acc:'Temporary catheter',note:'Right femoral',days:[w7(-2),w7(-1),w7(0)],ktv:1.2,inprog:true,pty:'Toxic',ptn:'Uremic toxicity: confusion and vomiting. Short, slow runs to prevent disequilibrium syndrome.',
+    cfg:C({seed:71,n:2,today:false,gain:2.6,gainR:0.4,dur:120,start:'08:00',sbp:158,dbp:96,hr:92,qb:200,ratio:0.4,shift:'1st',setting:'IPD',machine:'5',dialyzer:'F6',side:'Right',access:'Temporary catheter',thrill:'Not applicable',anti:'NSS flushing',tx0:1,symAll:['Nausea','Headache'],endorse:'Admitted on the medical ward. Doctor to decide the next run.'}),
+    notes:[{c:'Concern',t:'Very high urea on admission with confusion. Keep blood flow low and runs short for the first treatments. Watch for headache, vomiting and seizures.',pin:true,last:true}],
+    tasks:[{c:'Blood test',t:'Send BUN and creatinine before and after the run',due:0},{c:'Assessment',t:'Check the level of consciousness every 30 minutes during the run',due:0}],paper:['member'],v2:{soapS:'Nausea and headache, confused to time',findEdema:'Present'}},
+   {n:'Aquino, Gloria (sample)',mrn:'EX-0009',dry:60.0,age:36,sex:'Female',ht:160,dx:'Lithium toxicity (overdose), urgent hemodialysis (sample)',acc:'Temporary catheter',note:'Left internal jugular',days:[w7(0)],ktv:1.2,pty:'Toxic',ptn:'Poisoning: lithium. Single urgent run. Repeat the level after 6 hours (rebound).',
+    cfg:C({seed:81,n:1,today:true,gain:0.4,gainR:0.2,dur:240,start:'10:00',sbp:122,dbp:74,hr:96,qb:300,ratio:0.3,shift:'1st',setting:'IPD',machine:'2',dialyzer:'F8',side:'Left',access:'Temporary catheter',thrill:'Not applicable',anti:'NSS flushing',tx0:1,endorse:'Repeat lithium level after 6 hours. Doctor may order another run if it rebounds.'}),
+    notes:[{c:'Concern',t:'Lithium overdose. Watch for tremor, confusion and a fast or irregular heartbeat. Ward to repeat the level and review for another run.',pin:true,last:true}],
+    tasks:[{c:'Blood test',t:'Lithium level 6 hours after the run',due:0}],paper:[]},
+   {n:'Bautista, Elena (sample)',mrn:'EX-0010',dry:52.0,age:69,sex:'Female',ht:152,dx:'Diabetic nephropathy, ESKD. Catheter-related MRSA infection (sample)',acc:'Tunneled catheter',note:'Right subclavian, exit-site infection',days:[w7(1),w7(3),w7(5)],ktv:1.4,pty:'Infectious',ptn:'MRSA. Contact precautions. Catheter exit site infected, on antibiotics.',
+    cfg:C({seed:91,n:6,today:false,gain:1.5,dur:240,start:'09:00',sbp:130,dbp:70,hr:84,qb:280,shift:'1st',setting:'IPD',machine:'8',dialyzer:'F6',side:'Right',access:'Tunneled catheter',thrill:'Not applicable',anti:'None',tx0:30,symAll:['Chills'],endorse:'Contact precautions. Doctor to review the catheter. Antibiotic after dialysis.'}),
+    notes:[{c:'Handover',t:'MRSA. Gown and gloves for all contact, and clean the machine and chair after use. Check the temperature before and during the run.',pin:true,last:true}],
+    tasks:[{c:'Medication',t:'Give the antibiotic after dialysis as ordered',due:1},{c:'Access care',t:'Check and dress the exit site. Note any pus.',due:1}],paper:['member','agree'],v2:{needle:'',cannA:[null,null,null,null],cannV:[null,null,null,null],lumen:{ain:'Good',aout:'Poor',vin:'Good',vout:'Good'}}},
+   {n:'Lim, Dennis (sample)',mrn:'EX-0011',dry:80.0,age:74,sex:'Male',ht:171,dx:'Cardiorenal syndrome, heart failure, ESKD (sample)',acc:'AV fistula',note:'Left upper arm',days:[w7(2),w7(5)],ktv:1.3,pty:'High-risk',ptn:'Heart failure. Fluid gain limit 2 kg. Watch for breathlessness and low BP.',
+    cfg:C({seed:101,n:7,today:false,gain:1.9,gainR:0.9,badGain:3.4,bad:[4],dur:210,start:'13:30',sbp:112,dbp:64,hr:78,qb:260,shift:'2nd',setting:'OPD',machine:'6',dialyzer:'F7',side:'Left',access:'AV fistula',anti:'LMWH',tx0:70,sym:['Shortness of breath','Hypotension'],endorse:'Twice-weekly schedule. Doctor to review fluid gain.'}),
+    notes:[{c:'Concern',t:'Heart failure. Weight gain above 2 kg between sessions raises the risk of breathlessness. Check the lungs and BP often.',pin:true,last:true}],
+    tasks:[{c:'Education',t:'Review the fluid and salt limits with the family',due:2}],paper:['member','agree','order','count'],v2:{spo2:93,o2Type:'Nasal cannula',o2Sub:'2 L/min',o2Note:'Home oxygen at night. Kept on during the run.'}}
+  ];
+}
+
 /* ---- theme ---- */
 function effTheme(){var de=document.documentElement,t=de&&de.getAttribute?de.getAttribute('data-theme'):null;if(t==='dark'||t==='light')return t;return (window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
 function applyTheme(t){var de=document.documentElement;if(!de||!de.setAttribute)return;if(t==='light'||t==='dark')de.setAttribute('data-theme',t);else de.removeAttribute('data-theme');}
@@ -2385,6 +2446,7 @@ function choiceModal(o){
 function updateFormSafe(){if($('#sform'))updateForm();}
 function askSub(k,prev){
   if(k==='anti')return askAnti(prev);
+  if(k==='o2')return askO2(prev);
   var ids=k==='acc'?['f-acc','f-accsub','f-accnote']:['p-access','p-accsub','p-accnote'],m=$('#'+ids[0]);
   if(!m)return;
   var main=m.value;
@@ -2406,6 +2468,76 @@ function askAnti(prev){
    onOk:function(v){$('#f-asub').value=v.sub;$('#f-anote').value=v.note;$('#f-bolus').value=hep?(v.bolus||''):'';$('#f-hourly').value=hep?(v.hourly||''):'';m.dataset.prev=main;refreshSubs();updateFormSafe();},
    onCancel:function(){if(prev!==undefined&&prev!==main){m.value=prev||'';if(!prev){$('#f-asub').value='';$('#f-anote').value='';}}m.dataset.prev=m.value;refreshSubs();updateFormSafe();}});
 }
+
+/* ---- oxygen type, disinfected by, plausibility, stage gate ---- */
+var O2T=['Room air','Nasal cannula','Simple face mask','Venturi mask','Non-rebreather mask','High-flow nasal cannula','CPAP or BiPAP','Ventilator'];
+var O2SUB={
+ 'Room air':['Finger probe','Earlobe probe','Toe probe','Forehead probe'],
+ 'Nasal cannula':['1 L/min','2 L/min','3 L/min','4 L/min','5 L/min','6 L/min'],
+ 'Simple face mask':['5 L/min','6 L/min','8 L/min','10 L/min'],
+ 'Venturi mask':['24% oxygen','28% oxygen','31% oxygen','35% oxygen','40% oxygen','50% oxygen'],
+ 'Non-rebreather mask':['10 L/min','12 L/min','15 L/min'],
+ 'High-flow nasal cannula':['30 L/min','40 L/min','50 L/min','60 L/min','Other (explain in note)'],
+ 'CPAP or BiPAP':['CPAP','BiPAP','Other (explain in note)'],
+ 'Ventilator':['Invasive (breathing tube)','Non-invasive','Other (explain in note)']
+};
+var O2NOTE=['High-flow nasal cannula','CPAP or BiPAP','Ventilator'];
+function askO2(prev){
+  var m=$('#f-o2');if(!m)return;
+  var main=m.value;
+  if(!main||!O2SUB[main]){if(!main){$('#f-o2sub').value='';$('#f-o2note').value='';}refreshSubs();updateFormSafe();return;}
+  var same=(prev===undefined||prev===main),isRA=main==='Room air';
+  choiceModal({title:isRA?'Room air: where was the reading taken?':main+': which setting?',intro:isRA?'No extra oxygen was given. Choose the probe site.':'Choose the exact flow or oxygen percentage that was running during the reading.',opts:O2SUB[main],cur:same?$('#f-o2sub').value:'',note:same?$('#f-o2note').value:'',
+   noteLabel:O2NOTE.indexOf(main)>=0?'Nurse note (oxygen percentage, pressures or settings)':'Nurse note (needed if you choose Other)',notePh:'e.g. FiO2, reason oxygen is needed, doctor’s order',noteReq:function(sub){return /^Other/.test(sub||'')||O2NOTE.indexOf(main)>=0;},
+   onOk:function(v){$('#f-o2sub').value=v.sub;$('#f-o2note').value=v.note;m.dataset.prev=main;refreshSubs();updateFormSafe();},
+   onCancel:function(){if(prev!==undefined&&prev!==main){m.value=prev||'';if(!prev){$('#f-o2sub').value='';$('#f-o2note').value='';}}m.dataset.prev=m.value;refreshSubs();updateFormSafe();}});
+}
+function o2Ctl(s){return '<input type="hidden" id="f-o2sub" value="'+val(s.o2Sub)+'"><input type="hidden" id="f-o2note" value="'+val(s.o2Note)+'"><div class="subline" id="sl-o2"></div>';}
+function o2Need(s){return has(s.o2Type)&&has(s.o2Sub)&&(!(/^Other/.test(s.o2Sub||'')||O2NOTE.indexOf(s.o2Type)>=0)||has(s.o2Note));}
+var NA_DIS='Not applicable (new dialyzer)';
+function disinSel(s){
+  var names=staffList().filter(function(u){return u.active!==false&&u.name;}).map(function(u){return u.name;}),cur=s.disinfectedBy||'';
+  var opts=[NA_DIS].concat(names);if(cur&&opts.indexOf(cur)<0)opts.push(cur);
+  return sin('f-disinf',opts,cur);
+}
+function prevDone(a,i){for(var j=i-1;j>=0;j--){var x=a[j];if(x&&x.postWt!=null&&x.status!=='in-progress'&&x.status!=='void')return x;}return null;}
+function plaus(s){
+  var o=[],r=function(id,label,v,lo,hi){if(v!=null&&(v<lo||v>hi))o.push([id,label+' looks wrong (use '+lo+' to '+hi+')']);};
+  r('f-pre','Pre-weight',s.preWt,20,300);r('f-post','Post-weight',s.postWt,20,300);
+  r('f-presbp','Systolic before',s.preSBP,50,300);r('f-predbp','Diastolic before',s.preDBP,20,200);r('f-prehr','Pulse before',s.preHR,20,250);
+  r('f-postsbp','Systolic after',s.postSBP,50,300);r('f-postdbp','Diastolic after',s.postDBP,20,200);r('f-posthr','Pulse after',s.postHR,20,250);
+  r('f-pretemp','Temperature before',s.preTemp,30,43);r('f-posttemp','Temperature after',s.postTemp,30,43);
+  r('f-prerr','Respiration before',s.preRR,4,60);r('f-postrr','Respiration after',s.postRR,4,60);
+  r('f-spo2','Oxygen saturation',s.spo2,50,100);
+  r('f-qb','Blood flow',s.qb,50,600);r('f-qd','Dialysate flow',s.qd,100,1000);
+  r('f-dur','Run length',s.durationMin,30,720);r('f-actual','Actual run time',s.actualMin,5,720);
+  r('f-ufgoal','Target UF',s.ufGoal,0,10);r('f-ufact','Actual UF',s.ufActual,0,10);
+  r('f-prebun','BUN before',s.preBUN,1,400);r('f-postbun','BUN after',s.postBUN,1,400);
+  if(s.preSBP!=null&&s.preDBP!=null&&s.preDBP>=s.preSBP)o.push(['f-presbp','Blood pressure before: diastolic must be lower than systolic']);
+  if(s.postSBP!=null&&s.postDBP!=null&&s.postDBP>=s.postSBP)o.push(['f-postsbp','Blood pressure after: diastolic must be lower than systolic']);
+  if(s.date&&s.date>todayISO())o.push(['f-date','Date is in the future']);
+  if(s.actualMin>0&&s.durationMin>0&&s.actualMin>s.durationMin+120)o.push(['f-actual','Actual run time is much longer than planned']);
+  var bad=(s.vitals||[]).some(function(v){return (v.sbp!=null&&(v.sbp<40||v.sbp>300))||(v.dbp!=null&&(v.dbp<20||v.dbp>200))||(v.hr!=null&&(v.hr<20||v.hr>250))||(v.sbp!=null&&v.dbp!=null&&v.dbp>=v.sbp);});
+  if(bad)o.push(['f-readings','A reading has a blood pressure or pulse that looks wrong']);
+  return o;
+}
+var STORD={a:1,b:2,c:3};
+function gateStage(v){
+  var st=$('#stack');if(!st||!STORD[v])return true;
+  var cur=st.getAttribute('data-show');if(!STORD[cur]||STORD[v]<=STORD[cur])return true;
+  var s=collect(),need=[];for(var k in STORD)if(STORD[k]<STORD[v])need.push(k);
+  var miss=missing(s,true).filter(function(m){return need.indexOf(m[0]==='f-myname'?'a':stageFor(m[0]))>=0;});
+  var err=$('#form-err');
+  if(!miss.length){if(err&&/^Before you continue/.test(err.textContent||''))err.hidden=true;return true;}
+  $$('.f.bad').forEach(function(f){f.classList.remove('bad');});
+  miss.forEach(function(m){var f=$('[data-f="'+m[0]+'"]');if(f)f.classList.add('bad');});
+  if(err){err.innerHTML='Before you continue, fill in: '+jumpList(miss)+'. Tap an item to go to it.';err.hidden=false;}
+  rowGaps();jumpTo(miss[0][0]);
+  return false;
+}
+var tickT=null;
+function tickSoon(){if(!$('#sform'))return;clearTimeout(tickT);tickT=setTimeout(function(){if($('#sform'))updateForm();},60);}
+
 function subLine(mainId,subId,noteId,lineId,k){
   var ln=$('#'+lineId);if(!ln)return;
   var m=$('#'+mainId),sb=$('#'+subId),nt=$('#'+noteId),main=m?m.value:'',sub=sb?sb.value:'',note=nt?nt.value:'';
@@ -2416,8 +2548,9 @@ function subLine(mainId,subId,noteId,lineId,k){
   if(k==='anti'){var b=$('#f-bolus'),hr=$('#f-hourly');dose=[b&&b.value?'bolus '+b.value:'',hr&&hr.value?hr.value+' per hour':''].filter(Boolean).join(', ');}
   ln.innerHTML='<div class="subval"><b>'+esc(sub)+'</b>'+(dose?'<div class="sub">'+esc(dose)+'</div>':'')+(note?'<div class="sub">'+esc(note)+'</div>':'')+'</div> <button type="button" class="btn small" data-act="sub-edit" data-k="'+k+'">Change</button>';
 }
-function refreshSubs(){subLine('f-acc','f-accsub','f-accnote','sl-acc','acc');subLine('f-atype','f-asub','f-anote','sl-anti','anti');subLine('p-access','p-accsub','p-accnote','sl-pacc','pacc');}
+function refreshSubs(){subLine('f-acc','f-accsub','f-accnote','sl-acc','acc');subLine('f-atype','f-asub','f-anote','sl-anti','anti');subLine('p-access','p-accsub','p-accnote','sl-pacc','pacc');subLine('f-o2','f-o2sub','f-o2note','sl-o2','o2');}
 function subCtl(k,s){
+  if(k==='o2')return o2Ctl(s);
   if(k==='acc')return '<input type="hidden" id="f-accsub" value="'+val(s.accessSub)+'"><input type="hidden" id="f-accnote" value="'+val(s.accessNote)+'"><div class="subline" id="sl-acc"></div>';
   return '<input type="hidden" id="f-asub" value="'+val(s.anticoagSub)+'"><input type="hidden" id="f-anote" value="'+val(s.anticoagNote)+'"><div class="subline" id="sl-anti"></div>';
 }
@@ -2548,7 +2681,7 @@ function stageOfReq(r){return r[4]||(r[3]?'c':'a');}
 function demoNew(pt,pi,s,done){
   var NN=staffList().filter(function(u){return u.role!=='admin'&&u.active!==false;}),nn=NN.length?NN[pi%NN.length]:null;
   var who=nn?{id:nn.id,name:nn.name,license:String(nn.license||'')}:{id:me.id,name:myName(),license:myLic()};
-  var SUBS=['Radiocephalic (wrist)','Upper-arm straight','Right internal jugular','Brachiocephalic (elbow)','Right femoral'];
+  var SUBS=SAMPSUB;
   var svg='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="480" height="160" viewBox="0 0 480 160"><path d="M30 110 C60 40 90 40 100 100 S140 120 170 60 S220 130 260 80 S320 40 350 100 S410 110 450 70" fill="none" stroke="#10252A" stroke-width="3" stroke-linecap="round"/></svg>');
   var sub=(ANTISUB[s.anticoagType]||[''])[0],o={accessSub:SUBS[pi],accessNote:'',anticoagSub:sub,anticoagNote:'Per doctor’s order (sample).',dialyzerSerial:'SN-'+(4100+pi*7+(parseInt(s.treatmentNo,10)||0)),disinfectedBy:who.name,prime:s.prime||'Half prime',preTemp:36.6,preRR:18,
     steps:{prep:who,cann:who,mon:who},witness:{rel:'Patient',name:pt.n.replace(/\s*\(sample\)\s*$/i,''),sig:svg,at:nowISO()}};
@@ -2579,7 +2712,7 @@ function saveProfile(auto){
   if(auto===true){
     var c0=staff[me.id]||{},nm0=($('#pf-name').value||'').trim(),sg0=getSig('pf-sig'),now0=nowISO(),ph0=pfDraft.photo!==undefined?pfDraft.photo:(c0.photo||'');
     var d0=Object.assign({active:true,createdAt:now0},strip(c0),{name:nm0.length>=2?nm0:(c0.name||myName()),license:($('#pf-lic').value||'').trim(),signature:sg0||c0.signature||'',photo:ph0,role:isAdmin?'admin':'nurse',email:c0.email||me.email||'',updatedAt:now0,updatedBy:me.id});
-    staff[me.id]=Object.assign({id:me.id},d0);refreshTop();
+    staff[me.id]=Object.assign({id:me.id},d0);me.name=d0.name;refreshTop();if(authApi&&authApi.rename)Promise.resolve(authApi.rename(me.id,{name:d0.name,license:d0.license})).catch(function(){});
     Promise.resolve(db.doc('staff/'+me.id).set(d0)).then(function(){var st=$('#pf-state');if(st)st.textContent='Saved automatically';}).catch(function(){var st=$('#pf-state');if(st)st.textContent='Could not save. Check your connection.';});
     return;
   }
@@ -2595,7 +2728,7 @@ function saveProfile(auto){
   err.hidden=true;
   var cur=staff[me.id]||{},now=nowISO(),photo=pfDraft.photo!==undefined?pfDraft.photo:(cur.photo||'');
   var doc=Object.assign({active:true,createdAt:now},strip(cur),{name:nm,license:lic,signature:sg,photo:photo,role:isAdmin?'admin':'nurse',email:cur.email||me.email||'',updatedAt:now,updatedBy:me.id});
-  staff[me.id]=Object.assign({id:me.id},doc);
+  staff[me.id]=Object.assign({id:me.id},doc);me.name=doc.name;if(authApi&&authApi.rename)Promise.resolve(authApi.rename(me.id,{name:doc.name,license:doc.license})).catch(function(){});
   afterWrite(Promise.resolve(db.doc('staff/'+me.id).set(doc)).then(function(){return logEvent('profile-edit',null,null);}).then(function(){pfDraft={photo:undefined};toast('Profile saved');render();})).catch(function(){});
 }
 function viewStaff(){
@@ -2614,7 +2747,7 @@ function viewStaff(){
   L.forEach(function(u){
     var cnt=Object.keys(rawP).filter(function(k){return (rawP[k].nurses||[]).indexOf(u.id)>=0;}).length,off=u.active===false;
     h+='<tr'+(off?' class="off"':'')+'><td><div class="stn"><span class="av" aria-hidden="true">'+(u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc(initials(u.name)))+'</span><div><b>'+esc(u.name||'Unnamed')+'</b><div class="sub">'+esc(u.email||'')+'</div></div></div></td><td>'+(u.role==='admin'?'Admin':'Nurse')+(off?' <span class="pill mute">Off</span>':'')+'</td><td class="mono">'+(u.license?esc(u.license):'<span class="muted">missing</span>')+'</td><td>'+(u.signature?'<img class="sigimg" src="'+esc(u.signature)+'" alt="Signature of '+esc(u.name||'')+'">':'<span class="muted">missing</span>')+'</td><td>'+cnt+'</td><td>'
-     +(u.role!=='admin'&&u.active!==false?'<div class="acts"><button type="button" class="btn small primary" data-act="assign-n" data-id="'+esc(u.id)+'">Assign patients</button></div>':'')+(authApi&&u.id!==me.id?'<div class="acts"><button type="button" class="btn small" data-act="staff-reset" data-id="'+esc(u.id)+'">Reset password</button><button type="button" class="btn small" data-act="staff-toggle" data-id="'+esc(u.id)+'">'+(off?'Turn on':'Turn off')+'</button></div>':'')+'</td></tr>';
+     +'<div class="acts"><button type="button" class="btn small" data-act="staff-edit" data-id="'+esc(u.id)+'">Edit</button></div>'+(u.role!=='admin'&&u.active!==false?'<div class="acts"><button type="button" class="btn small primary" data-act="assign-n" data-id="'+esc(u.id)+'">Assign patients</button></div>':'')+(authApi&&u.id!==me.id?'<div class="acts"><button type="button" class="btn small" data-act="staff-reset" data-id="'+esc(u.id)+'">Reset password</button><button type="button" class="btn small" data-act="staff-toggle" data-id="'+esc(u.id)+'">'+(off?'Turn on':'Turn off')+'</button></div>':'')+'</td></tr>';
   });
   return h+'</tbody></table></div><p class="sub" style="margin-top:12px">Admins assign nurses to each patient from the patient’s Profile tab. A nurse only sees the patients assigned to them.</p>';
 }
@@ -2639,6 +2772,20 @@ function staffReset(id){
      return true;
    }});
 }
+function staffEdit(id){
+  var u=staff[id];if(!u)return;
+  var h='<h3 id="m-title">Edit '+esc(u.name||'staff')+'</h3><p class="sub" style="margin:4px 0 12px">Changes show everywhere right away. Steps already recorded in past sessions keep the name and license that were used at the time.</p>'
+   +'<div class="grid-f">'+fld('se-name','Full name',true,'<input id="se-name" value="'+val(u.name||'')+'" autocomplete="off">')+fld('se-lic','License number',true,'<input id="se-lic" value="'+val(u.license||'')+'" autocomplete="off">')+'</div>'
+   +'<p class="sub">Email: '+esc(u.email||'none')+'. Role: '+(u.role==='admin'?'Admin':'Nurse')+'.</p><p class="err" id="m-err" role="alert" hidden></p><div class="actions"><button type="button" class="btn primary" data-act="modal-ok">Save</button><button type="button" class="btn" data-act="modal-cancel">Cancel</button></div>';
+  openModal(h,{onOk:function(){
+    var nm=($('#se-name').value||'').trim(),lic=($('#se-lic').value||'').trim(),err=$('#m-err');
+    if(nm.length<2){err.textContent='Enter the full name.';err.hidden=false;return false;}
+    var doc=Object.assign({},strip(u),{name:nm,license:lic,updatedAt:nowISO(),updatedBy:me.id});
+    staff[id]=Object.assign({id:id},doc);if(id===me.id){me.name=nm;}
+    afterWrite(Promise.resolve(authApi&&authApi.rename?authApi.rename(id,{name:nm,license:lic}):null).then(function(){return db.doc('staff/'+id).set(doc);}).then(function(){return logEvent('staff-edit',null,null,{target:nm});}).then(function(){toast('Saved');refreshTop();scheduleRender();})).catch(function(){});
+    return true;
+  }});
+}
 function staffToggle(id){
   var u=staff[id];if(!u)return;var on=u.active===false;
   Promise.resolve(authApi.setActive(id,on)).then(function(){return db.doc('staff/'+id).set(Object.assign({},strip(u),{active:on,updatedAt:nowISO(),updatedBy:me.id}));}).then(function(){logEvent(on?'staff-on':'staff-off',null,null,{target:u.name});scheduleRender();}).catch(function(e){toast((e&&e.message)||'Could not change this account.');});
@@ -2651,21 +2798,25 @@ function nurseChecks(p){
 function pSubCtl(p){return '<input type="hidden" id="p-accsub" value="'+val(p.accessSub)+'"><input type="hidden" id="p-accnote" value="'+val(p.accessSubNote)+'"><div class="subline" id="sl-pacc"></div>';}
 
 /* ---- today banner ---- */
+function ptc(rows){var o=[];['Infectious','Toxic','High-risk'].forEach(function(t){var n=rows.filter(function(r){return ptOf(r.p)===t;}).length;if(n)o.push(n+' '+t.toLowerCase());});return o.length?'Special care: '+o.join(', '):'';}
 function todayBanner(rows){
   if(isAdmin){
     var ids={};rows.forEach(function(r){(r.p.nurses||[]).forEach(function(i){ids[i]=1;});});
     var io0=rows.filter(function(r){return setOf(r.p)==='IPD';}).length,oo0=rows.filter(function(r){return setOf(r.p)==='OPD';}).length;
-    return '<p class="you"><b>'+rows.length+(rows.length===1?' patient':' patients')+'</b> today ('+oo0+' outpatient, '+io0+' inpatient) across '+Object.keys(ids).length+(Object.keys(ids).length===1?' nurse':' nurses')+'. You can see every record.</p>';
+    return '<p class="you"><b>'+rows.length+(rows.length===1?' patient':' patients')+'</b> today ('+oo0+' outpatient, '+io0+' inpatient) across '+Object.keys(ids).length+(Object.keys(ids).length===1?' nurse':' nurses')+(ptc(rows)?'. '+ptc(rows):'')+'. You can see every record.</p>';
   }
   var nm=rows.map(function(r){return (r.p.name||'Unnamed').replace(/\s*\(sample\)\s*$/i,'');}).slice(0,6).join('; ');
   var io=rows.filter(function(r){return setOf(r.p)==='IPD';}).length,oo=rows.filter(function(r){return setOf(r.p)==='OPD';}).length;
-  return '<p class="you">You have <b>'+rows.length+(rows.length===1?' patient':' patients')+'</b> to handle today'+(rows.length?' ('+oo+' outpatient, '+io+' inpatient)':'')+(rows.length?': '+esc(nm)+(rows.length>6?' and '+(rows.length-6)+' more':''):'')+'. You only see patients assigned to you.</p>';
+  return '<p class="you">You have <b>'+rows.length+(rows.length===1?' patient':' patients')+'</b> to handle today'+(rows.length?' ('+oo+' outpatient, '+io+' inpatient)':'')+(rows.length?': '+esc(nm)+(rows.length>6?' and '+(rows.length-6)+' more':''):'')+(ptc(rows)?'. '+ptc(rows):'')+'. You only see patients assigned to you.</p>';
 }
 
 
 /* ---- OPD / IPD, schedule, assignment ---- */
 var schedNurse='';
 function setOf(p){if(p.setting)return p.setting;var ps=pSessions(p.id||'-');for(var i=ps.length-1;i>=0;i--)if(ps[i].setting)return ps[i].setting;return '';}
+var PTYPES=['Standard','Infectious','Toxic','High-risk'],SAMPSUB=['Radiocephalic (wrist)','Upper-arm straight','Right internal jugular','Brachiocephalic (elbow)','Right femoral','Radiocephalic (wrist)','Forearm loop','Right femoral','Left internal jugular','Right subclavian','Brachiocephalic (elbow)'];
+function ptOf(p){return (p&&p.ptype)||'Standard';}
+function typePill(p){var v=ptOf(p),c={Standard:'std',Infectious:'inf',Toxic:'tox','High-risk':'risk'}[v]||'std';return '<span class="stp pt-'+c+'" title="Patient type: '+esc(v)+'">'+(v==='Infectious'?'\u26A0 ':(v==='Toxic'||v==='High-risk'?'! ':''))+esc(v)+'</span>';}
 function setPill(p,short){var v=setOf(p);return v?'<span class="stp '+(v==='IPD'?'ipd':'opd')+'">'+(short?v:(v==='IPD'?'Inpatient · IPD':'Outpatient · OPD'))+'</span>':'';}
 function scheduleHTML(){
   var list=Object.keys(patients).map(function(k){return patients[k];}).filter(function(p){return p.status!=='archived';});
@@ -2684,7 +2835,7 @@ function scheduleHTML(){
   h+='<div class="sched">'+days.map(function(x){
     var cls='sday'+(x.i===0?' now':'')+((x.dow===0||x.dow===6)?' wk':'')+(x.ps.length?'':' none');
     return '<div class="'+cls+'"><div class="dh"><b>'+DN[x.dow]+'</b> '+x.d.getDate()+' '+x.d.toLocaleDateString('en-GB',{month:'short'})+(x.i===0?' <span class="tdy">Today</span>':'')+'<span class="n">'+x.ps.length+'</span></div>'
-     +(x.ps.length?x.ps.map(function(p){return '<a class="si" href="#p-'+p.id+'"><span class="sn">'+esc((p.name||'Unnamed').replace(/\s*\(sample\)\s*$/i,''))+'</span>'+setPill(p,true)+(isAdmin&&nurseNames(p)?'<span class="sub">'+esc(nurseNames(p))+'</span>':'')+'</a>';}).join(''):'<span class="sub">No sessions</span>')+'</div>';
+     +(x.ps.length?x.ps.map(function(p){return '<a class="si" href="#p-'+p.id+'"><span class="sn">'+esc((p.name||'Unnamed').replace(/\s*\(sample\)\s*$/i,''))+'</span>'+setPill(p,true)+typePill(p)+(isAdmin&&nurseNames(p)?'<span class="sub">'+esc(nurseNames(p))+'</span>':'')+'</a>';}).join(''):'<span class="sub">No sessions</span>')+'</div>';
   }).join('')+'</div>';
   return h;
 }
@@ -2692,7 +2843,7 @@ function assignModal(kind,id){
   var items,cur;
   if(kind==='nurse'){
     var u=staff[id];if(!u)return;
-    items=Object.keys(rawP).map(function(k){return rawP[k];}).filter(function(p){return p.status!=='archived';}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');}).map(function(p){return {id:p.id,label:p.name||'Unnamed',sub:setOf(p)||'',on:(p.nurses||[]).indexOf(id)>=0};});
+    items=Object.keys(rawP).map(function(k){return rawP[k];}).filter(function(p){return p.status!=='archived';}).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');}).map(function(p){return {id:p.id,label:p.name||'Unnamed',sub:[setOf(p),ptOf(p)].filter(Boolean).join(' · '),on:(p.nurses||[]).indexOf(id)>=0};});
     var title='Assign patients to '+(u.name||'nurse'),intro='Tick every patient this nurse handles. The nurse then sees them on the Today page.';
   }else{
     var p0=rawP[id]||patients[id];if(!p0)return;
@@ -2726,6 +2877,7 @@ document.addEventListener('click',function(e){
   if(m&&!m.hidden&&e.target===m){closeModal(true);return;}
   var a=e.target.closest?e.target.closest('[data-act]'):null;if(!a)return;
   var act=a.getAttribute('data-act');
+  if(act==='stage'&&!gateStage(a.getAttribute('data-v'))){e.stopImmediatePropagation();e.preventDefault();return;}
   if(act==='modal-ok'){if(modalCtx&&modalCtx.onOk&&modalCtx.onOk()!==false)closeModal(false);}
   else if(act==='modal-cancel')closeModal(true);
   else if(act==='sub-edit'){var k=a.getAttribute('data-k');askSub(k,undefined);}
@@ -2742,22 +2894,34 @@ document.addEventListener('click',function(e){
   else if(act==='staff-cancel'){staffOpen=false;scheduleRender();}
   else if(act==='staff-create')staffCreate();
   else if(act==='staff-reset')staffReset(a.getAttribute('data-id'));
+  else if(act==='staff-edit')staffEdit(a.getAttribute('data-id'));
   else if(act==='staff-toggle')staffToggle(a.getAttribute('data-id'));
 });
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){var m=$('#modal');if(m&&!m.hidden)closeModal(true);}
   else if(e.key==='Enter'){var m2=$('#modal');if(m2&&!m2.hidden&&e.target&&e.target.tagName==='INPUT'&&e.target.type!=='radio'){e.preventDefault();if(modalCtx&&modalCtx.onOk&&modalCtx.onOk()!==false)closeModal(false);}}
 });
-document.addEventListener('focusin',function(e){var t=e.target;if(t&&t.tagName==='SELECT'&&(t.id==='f-acc'||t.id==='p-access'||t.id==='f-atype'))t.dataset.prev=t.value;});
+document.addEventListener('focusin',function(e){var t=e.target;if(t&&t.tagName==='SELECT'&&(t.id==='f-acc'||t.id==='p-access'||t.id==='f-atype'||t.id==='f-o2'))t.dataset.prev=t.value;});
 document.addEventListener('change',function(e){
   var t=e.target;if(!t)return;
   if(t.id==='sched-nurse'){schedNurse=t.value;render();return;}
   if(t.id==='f-acc'||t.id==='p-access')askSub(t.id==='f-acc'?'acc':'pacc',t.dataset.prev===undefined?'':t.dataset.prev);
   else if(t.id==='f-atype')askSub('anti',t.dataset.prev===undefined?'':t.dataset.prev);
+  else if(t.id==='f-o2')askSub('o2',t.dataset.prev===undefined?'':t.dataset.prev);
+  else if(t.id==='f-reuse'){var ds=$('#f-disinf'),n=parseFloat(t.value);if(ds){if(n===1&&!ds.value)ds.value=NA_DIS;else if(n>1&&ds.value===NA_DIS)ds.value='';updateFormSafe();}}
   else if(t.id==='f-wrel'){var n=$('#f-wname'),form=$('#sform');if(n&&t.value==='Patient'&&!n.value.trim()&&form){var pp=patients[form.getAttribute('data-pid')];if(pp&&pp.name)n.value=pp.name.replace(/\s*\(sample\)\s*$/i,'');updateForm();}}
   else if(t.id==='pf-file'&&t.files&&t.files[0]){squareThumb(t.files[0],192).then(function(u){pfDraft.photo=u;setPfPhoto(u);}).catch(function(){toast('That picture could not be read.');});t.value='';}
 });
 document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#pfform')&&!e.target.classList.contains('sig'))pfAuto();});
+document.addEventListener('input',function(e){
+  var t=e.target;if(!t||!$('#sform'))return;
+  if(t.id==='f-pre'){var g=$('#f-ufgoal'),fm=$('#sform'),pp=fm&&patients[fm.getAttribute('data-pid')],pw=parseFloat(t.value);
+    if(g&&pp&&pp.dryWeight>0&&isFinite(pw)&&(g.value===''||g.getAttribute('data-auto')==='1')){var d=Math.max(0,pw-pp.dryWeight);g.value=(Math.round(d*10)/10).toString();g.setAttribute('data-auto','1');}
+    else if(g&&g.getAttribute('data-auto')==='1'&&t.value===''){g.value='';}}
+  else if(t.id==='f-ufgoal'){t.setAttribute('data-auto','0');}
+  tickSoon();
+});
+['click','keyup','change','focusout'].forEach(function(n){document.addEventListener(n,function(e){if(e.target&&e.target.closest&&e.target.closest('#sform,#modal'))tickSoon();});});
 initTheme();
 
 function saveFile(name,text){
@@ -2832,7 +2996,7 @@ document.addEventListener('click',function(e){
   else if(act==='add-reading'){
     var rs=$$('.rd'),lastT=0,prevB=null,prevD=null;
     rs.forEach(function(r){var t=num($('.rf-t',r).value);if(t!=null&&t>=lastT){lastT=t;prevB=$('.rf-bfr',r).value;prevD=$('.rf-dfr',r).value;}});
-    $('#readings').insertAdjacentHTML('beforeend',readingRow({t:rs.length?lastT+30:30,bfr:prevB===''?null:prevB,dfr:prevD===''?null:prevD}));
+    $('#readings').insertAdjacentHTML('beforeend',readingRow({t:rs.length?lastT+60:60,bfr:prevB===''?null:prevB,dfr:prevD===''?null:prevD}));
     var nr=$$('.rd').pop();var inp=$('.rf-sbp',nr);if(inp)inp.focus();updateForm();
   }
   else if(act==='rm-reading'){a.closest('.rd').remove();updateForm();}
